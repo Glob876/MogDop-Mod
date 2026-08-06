@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "mogdops-mod:block/mob_spawner_slab" }
+  }
+}

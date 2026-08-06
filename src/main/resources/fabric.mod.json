@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "mogdops-mod",
+  "version": "${version}",
+  "name": "MogDop's Mod",
+  "description": "A simple Garry's Mod style entity spawner and WorldEdit API integration using owo-lib.",
+  "authors": [
+    "glob"
+  ],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/mogdops-mod/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.mogdop.mod.MogDopSMod"
+    ],
+    "client": [
+      "com.mogdop.mod.client.MogDopSModClient"
+    ],
+    "modmenu": [
+      "com.mogdop.mod.client.ModMenuIntegration"
+    ]
+  },
+  "mixins": [
+    "mogdops-mod.mixins.json",
+    "mogdops-mod.client.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.1",
+    "fabric-api": "*",
+    "owo": ">=0.12.0",
+    "worldedit": ">=7.3.0"
+  }
+}
