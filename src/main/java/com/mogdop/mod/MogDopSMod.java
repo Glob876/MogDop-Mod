@@ -1,5 +1,6 @@
 package com.mogdop.mod;
 
+import com.mogdop.mod.entity.ImageDisplayEntity;
 import com.mogdop.mod.network.*;
 import com.mogdop.mod.worldedit.WorldEditIntegration;
 import net.fabricmc.api.ModInitializer;
@@ -12,12 +13,11 @@ import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.SpawnGroup;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
-import net.minecraft.particle.ParticleEffect;
-import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -43,10 +43,11 @@ public class MogDopSMod implements ModInitializer {
 
     public static Block MOB_SPAWNER_SLAB;
     public static BlockEntityType<MobSpawnerSlabBlockEntity> MOB_SPAWNER_SLAB_ENTITY;
+    public static EntityType<ImageDisplayEntity> IMAGE_DISPLAY_ENTITY;
 
     @Override
     public void onInitialize() {
-        LOGGER.info("MogDop's Mod Initializing v0.2.0 with Schematics & WorldEdit API...");
+        LOGGER.info("MogDop's Mod Initializing v0.2.0 with Schematics & WorldEdit API & Image Entities...");
 
         MOB_SPAWNER_SLAB = Registry.register(Registries.BLOCK, Identifier.of(MOD_ID, "mob_spawner_slab"),
                 new MobSpawnerSlabBlock(AbstractBlock.Settings.copy(Blocks.STONE_SLAB).nonOpaque()));
@@ -56,6 +57,13 @@ public class MogDopSMod implements ModInitializer {
 
         MOB_SPAWNER_SLAB_ENTITY = Registry.register(Registries.BLOCK_ENTITY_TYPE, Identifier.of(MOD_ID, "mob_spawner_slab"),
                 BlockEntityType.Builder.create(MobSpawnerSlabBlockEntity::new, MOB_SPAWNER_SLAB).build());
+
+        IMAGE_DISPLAY_ENTITY = Registry.register(Registries.ENTITY_TYPE, Identifier.of(MOD_ID, "image_display"),
+                EntityType.Builder.<ImageDisplayEntity>create(ImageDisplayEntity::new, SpawnGroup.MISC)
+                        .dimensions(0.5F, 0.5F)
+                        .maxTrackingRange(12)
+                        .trackingTickInterval(10)
+                        .build("image_display"));
 
         // Регистрация C2S Пакетов
         PayloadTypeRegistry.playC2S().register(SpawnEntityPayload.ID, SpawnEntityPayload.CODEC);
@@ -83,10 +91,26 @@ public class MogDopSMod implements ModInitializer {
         PayloadTypeRegistry.playC2S().register(LoadSchematicPayload.ID, LoadSchematicPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(RequestSchematicsListPayload.ID, RequestSchematicsListPayload.CODEC);
 
+        // C2S Пакет Изображений
+        PayloadTypeRegistry.playC2S().register(SpawnImagePayload.ID, SpawnImagePayload.CODEC);
+
         // S2C Пакеты
         PayloadTypeRegistry.playS2C().register(OpenMobSpawnerSlabScreenPayload.ID, OpenMobSpawnerSlabScreenPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(SyncSchematicsListPayload.ID, SyncSchematicsListPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(SchematicPreviewPayload.ID, SchematicPreviewPayload.CODEC);
+
+        // ОБРАБОТЧИК ИЗОБРАЖЕНИЙ
+        ServerPlayNetworking.registerGlobalReceiver(SpawnImagePayload.ID, (payload, context) -> context.server().execute(() -> {
+            ServerWorld world = context.player().getServerWorld();
+            ImageDisplayEntity entity = IMAGE_DISPLAY_ENTITY.create(world);
+            if (entity != null) {
+                Vec3d p1 = new Vec3d(payload.p1x(), payload.p1y(), payload.p1z());
+                Vec3d p2 = new Vec3d(payload.p2x(), payload.p2y(), payload.p2z());
+                Direction facing = Direction.byId(payload.facingId());
+                entity.setImageData(payload.imageName(), p1, p2, facing);
+                world.spawnEntity(entity);
+            }
+        }));
 
         // ОБРАБОТЧИКИ СХЕМАТИК И БУФЕРА ОБМЕНА
         ServerPlayNetworking.registerGlobalReceiver(CopyClipboardPayload.ID, (CopyClipboardPayload payload, ServerPlayNetworking.Context context) -> context.server().execute(() -> {
