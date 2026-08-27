@@ -1,14 +1,15 @@
 package com.mogdop.mod.client.gui;
 
+import com.mogdop.mod.MogDopSMod;
 import com.mogdop.mod.client.MogDopSModClient;
 import com.mogdop.mod.network.*;
 import com.mojang.blaze3d.systems.RenderSystem;
 import io.wispforest.owo.ui.base.BaseComponent;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.CheckboxComponent;
+import io.wispforest.owo.ui.component.ColorPickerComponent;
 import io.wispforest.owo.ui.component.Components;
 import io.wispforest.owo.ui.component.EntityComponent;
-import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.component.TextBoxComponent;
 import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
@@ -17,11 +18,11 @@ import io.wispforest.owo.ui.core.*;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnGroup;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -29,7 +30,6 @@ import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.Box;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
@@ -45,16 +45,16 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
 
     private static final Identifier LOGO_TEXTURE = Identifier.of("mogdops-mod", "icon.png");
 
+    private final Screen parent;
     private FlowLayout root;
-    private FlowLayout tabsSidebar;
+    private FlowLayout tabsSidebarTop;
+    private FlowLayout bottomSettingsBox;
     private FlowLayout tabContentWrapper;
 
     private final List<TabModule> tabs = new ArrayList<>();
     private TabModule currentTabModule;
 
     private final List<EntityType<?>> allSpawnableEntities = new ArrayList<>();
-    private final List<Entity> nearbyEntities = new ArrayList<>();
-
     private boolean showMisc = false;
     private int categoryIndex = 0;
 
@@ -68,14 +68,33 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
     private long lastSpawnTime = 0;
 
     public SpawnerScreen() {
-        tabs.add(new MainMenuTab());
-        tabs.add(new MobSpawnerTab());
-        tabs.add(new ItemGiverTab());
-        tabs.add(new UtilitiesTab());
-        currentTabModule = tabs.get(0);
+        this(null, 0);
     }
 
-    // Компонент изображения с режимом заполнения Cover (без искажения и дублирования)
+    public SpawnerScreen(@Nullable Screen parent) {
+        this(parent, 0);
+    }
+
+    public SpawnerScreen(@Nullable Screen parent, int initialTabIndex) {
+        this.parent = parent;
+        initTabs();
+        if (initialTabIndex >= 0 && initialTabIndex < tabs.size()) {
+            currentTabModule = tabs.get(initialTabIndex);
+        } else {
+            currentTabModule = tabs.get(0);
+        }
+    }
+
+    private void initTabs() {
+        tabs.clear();
+        tabs.add(new MainMenuTab());     // 0: Главная
+        tabs.add(new MobSpawnerTab());   // 1: Мобы
+        tabs.add(new ItemGiverTab());    // 2: Предметы
+        tabs.add(new UtilitiesTab());    // 3: Утилиты
+        tabs.add(new SettingsTab());     // 4: Настройки
+    }
+
+    // Компонент изображения с режимом заполнения Cover
     public static class CoverImageComponent extends BaseComponent {
         private final Identifier texture;
         private final int imageWidth;
@@ -91,7 +110,6 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
         public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
             if (this.width <= 0 || this.height <= 0) return;
 
-            // Вычисляем масштаб для полного заполнения контейнера
             float scale = Math.max((float) this.width / this.imageWidth, (float) this.height / this.imageHeight);
             int drawW = Math.round(this.imageWidth * scale);
             int drawH = Math.round(this.imageHeight * scale);
@@ -109,26 +127,20 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
                     drawW, drawH
             );
 
-            // Плавное затемнение снизу для мягкого перехода к тексту
             context.fillGradient(this.x, this.y + this.height - 35, this.x + this.width, this.y + this.height, 0x00101014, 0xEE101014);
-
             context.disableScissor();
         }
 
         @Override
-        protected int determineHorizontalContentSize(Sizing sizing) {
-            return 100;
-        }
+        protected int determineHorizontalContentSize(Sizing sizing) { return 100; }
 
         @Override
-        protected int determineVerticalContentSize(Sizing sizing) {
-            return 100;
-        }
+        protected int determineVerticalContentSize(Sizing sizing) { return 100; }
     }
 
     // Компонент компактного текста с уменьшенным масштабом шрифта
     public static class SmallLabelComponent extends BaseComponent {
-        private final Text text;
+        private Text text;
         private final float scale;
         private final int color;
         private final boolean shadow;
@@ -139,6 +151,11 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
             this.scale = scale;
             this.color = color;
             this.shadow = shadow;
+        }
+
+        public SmallLabelComponent text(Text text) {
+            this.text = text;
+            return this;
         }
 
         public SmallLabelComponent horizontalAlignment(HorizontalAlignment align) {
@@ -214,6 +231,16 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     @Override
+    public void close() {
+        MogDopSModClient.CONFIG.save();
+        if (this.parent != null) {
+            MinecraftClient.getInstance().setScreen(this.parent);
+        } else {
+            super.close();
+        }
+    }
+
+    @Override
     protected @NotNull OwoUIAdapter<FlowLayout> createAdapter() {
         return OwoUIAdapter.create(this, Containers::verticalFlow);
     }
@@ -233,31 +260,38 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
         windowBox.padding(Insets.of(8));
         windowBox.gap(8);
 
-        // ================= 1. ЛЕВЫЙ САЙДБАР =================
+        // ================= 1. ЛЕВЫЙ САЙДБАР С ВКЛАДКАМИ =================
         FlowLayout leftSidebar = Containers.verticalFlow(Sizing.fixed(110), Sizing.fill(100));
         leftSidebar.surface(Surface.flat(0xCC14141A));
         leftSidebar.padding(Insets.of(6));
-        leftSidebar.gap(6);
+        leftSidebar.gap(4);
 
+        // Шапка слева вверху
         FlowLayout headerBox = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
         headerBox.horizontalAlignment(HorizontalAlignment.CENTER);
-        headerBox.margins(Insets.bottom(6));
+        headerBox.margins(Insets.bottom(4));
         headerBox.child(smallLabel(Text.literal("MOGDOP'S MOD"), 0.85f, 0xFF00C8FF).horizontalAlignment(HorizontalAlignment.CENTER));
         headerBox.child(smallLabel(Text.literal("v0.2.0"), 0.65f, 0x88AAAAAA).horizontalAlignment(HorizontalAlignment.CENTER));
         leftSidebar.child(headerBox);
 
-        tabsSidebar = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
-        tabsSidebar.gap(4);
+        // Верхние основные вкладки
+        tabsSidebarTop = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        tabsSidebarTop.gap(4);
+        leftSidebar.child(tabsSidebarTop);
 
-        for (TabModule tab : tabs) {
-            FlowLayout tabBtn = createSidebarTabButton(tab);
-            tabsSidebar.child(tabBtn);
-        }
-        leftSidebar.child(tabsSidebar);
+        // Разделительная линия перед настройками
+        FlowLayout divider = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1));
+        divider.surface(Surface.flat(0x44FFFFFF));
+        divider.margins(Insets.vertical(6));
+        leftSidebar.child(divider);
+
+        // Нижняя секция (Вкладка Настройки)
+        bottomSettingsBox = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        leftSidebar.child(bottomSettingsBox);
 
         windowBox.child(leftSidebar);
 
-        // ================= 2. ПРАВАЯ ОБЛАСТЬ КОНТЕНТА =================
+        // ================= 2. ПРАВАЯ РАБОЧАЯ ОБЛАСТЬ КОНТЕНТА =================
         tabContentWrapper = Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100));
         tabContentWrapper.surface(Surface.flat(0xAA16161E));
         tabContentWrapper.padding(Insets.of(8));
@@ -323,11 +357,16 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private void rebuildTabUI() {
-        if (tabsSidebar != null) {
-            tabsSidebar.clearChildren();
-            for (TabModule tab : tabs) {
-                tabsSidebar.child(createSidebarTabButton(tab));
+        if (tabsSidebarTop != null && tabs.size() > 0) {
+            tabsSidebarTop.clearChildren();
+            for (int i = 0; i < 4 && i < tabs.size(); i++) {
+                tabsSidebarTop.child(createSidebarTabButton(tabs.get(i)));
             }
+        }
+
+        if (bottomSettingsBox != null && tabs.size() > 4) {
+            bottomSettingsBox.clearChildren();
+            bottomSettingsBox.child(createSidebarTabButton(tabs.get(4)));
         }
 
         tabContentWrapper.clearChildren();
@@ -397,7 +436,7 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
         return createFlatButton(width, height, smallLabel(text, 0.75f, 0xFFFFFFFF), onClick);
     }
 
-    // ================= ВКЛАДКА 0: ГЛАВНОЕ МЕНЮ (Cover-обложка + скролл) =================
+    // ================= ВКЛАДКА 0: ГЛАВНОЕ МЕНЮ =================
     private class MainMenuTab extends TabModule {
         @Override
         public Text getTitle() { return Text.translatable("mogdops-mod.tab.main"); }
@@ -407,7 +446,6 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
             container.gap(6);
             container.horizontalAlignment(HorizontalAlignment.CENTER);
 
-            // Обложка с автоматическим заполнением Cover
             CoverImageComponent cover = new CoverImageComponent(LOGO_TEXTURE, 512, 288);
             cover.sizing(Sizing.fill(100), Sizing.fixed(110));
             container.child(cover);
@@ -650,12 +688,18 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
             String lowerFilter = search.toLowerCase();
             FlowLayout currentRow = null;
             int itemsInRow = 0;
-            int renderCount = 0;
             int maxPerRow = 7;
 
+            // Собираем список всех предметов, помещая Творческий посох в самое начало
+            List<Item> itemList = new ArrayList<>();
+            itemList.add(MogDopSMod.STAFF);
             for (Item item : Registries.ITEM) {
-                if (item instanceof BlockItem) continue;
+                if (item != MogDopSMod.STAFF && !(item instanceof BlockItem)) {
+                    itemList.add(item);
+                }
+            }
 
+            for (Item item : itemList) {
                 String name = item.getName().getString();
                 String id = Registries.ITEM.getId(item).getPath();
                 if (!search.isEmpty() && !name.toLowerCase().contains(lowerFilter) && !id.toLowerCase().contains(lowerFilter)) continue;
@@ -677,9 +721,6 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
                     itemsInRow = 0;
                 }
                 currentRow.child(card); itemsInRow++;
-
-                renderCount++;
-                if (renderCount >= 140) break;
             }
             if (currentRow != null && itemsInRow > 0) grid.child(currentRow);
 
@@ -724,6 +765,9 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
                 ItemStack finalStack = new ItemStack(configuringItem, count);
                 ClientPlayNetworking.send(new GiveItemPayload(finalStack));
                 SpawnerScreen.this.triggerSpawnEffect();
+                if (MinecraftClient.getInstance().player != null) {
+                    MinecraftClient.getInstance().player.sendMessage(Text.literal("§a[MogDop] Выдано: " + configuringItem.getName().getString() + " x" + count), true);
+                }
             }));
 
             mainContainer.child(rightCol);
@@ -745,13 +789,17 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
             FlowLayout weRow = Containers.horizontalFlow(Sizing.content(), Sizing.content());
             weRow.gap(6);
 
-            ItemStack axe = new ItemStack(Items.IRON_AXE);
-            axe.set(DataComponentTypes.CUSTOM_NAME, Text.translatable("mogdops-mod.tool.selection_axe.name"));
-            axe.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
+            // Использование Творческого Посоха (MogDopSMod.STAFF) вместо топора
+            ItemStack staff = new ItemStack(MogDopSMod.STAFF);
+            staff.set(DataComponentTypes.CUSTOM_NAME, Text.translatable("item.mogdops-mod.staff"));
+            staff.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
 
-            weRow.child(createCard(Components.item(axe), Text.translatable("mogdops-mod.worldedit.get_axe").getString(), () -> {
-                ClientPlayNetworking.send(new GiveItemPayload(axe));
+            weRow.child(createCard(Components.item(staff), Text.translatable("mogdops-mod.worldedit.get_staff").getString(), () -> {
+                ClientPlayNetworking.send(new GiveItemPayload(staff));
                 SpawnerScreen.this.triggerSpawnEffect();
+                if (MinecraftClient.getInstance().player != null) {
+                    MinecraftClient.getInstance().player.sendMessage(Text.literal("§a[MogDop] Творческий Посох добавлен в инвентарь!"), true);
+                }
             }, null));
 
             weRow.child(createCard(Components.item(new ItemStack(Items.BRICKS)), Text.translatable("mogdops-mod.worldedit.fill").getString(), () -> {
@@ -790,6 +838,218 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
             grid.child(cheatRow);
 
             ScrollContainer<FlowLayout> scroll = Containers.verticalScroll(Sizing.fill(100), Sizing.fill(100), grid);
+            scroll.scrollbar(ScrollContainer.Scrollbar.flat(Color.ofArgb(0xAAFFFFFF)));
+            container.child(scroll);
+        }
+    }
+
+    // ================= ВКЛАДКА 4: НАСТРОЙКИ (ВНИЗУ) =================
+    private class SettingsTab extends TabModule {
+        private TextBoxComponent colorFieldRef;
+        private ColorPickerComponent colorPickerRef;
+        private FlowLayout colorPreviewBox;
+
+        @Override
+        public Text getTitle() { return Text.literal("⚙ Настройки"); }
+
+        private int parseHexColor(String hex) {
+            if (hex.startsWith("#")) hex = hex.substring(1);
+            try {
+                int rgb = Integer.parseInt(hex, 16);
+                return (0xFF << 24) | rgb;
+            } catch (Exception e) {
+                return 0xFFFFAA00;
+            }
+        }
+
+        private void updateColorFromText(String val) {
+            try {
+                int colorInt = parseHexColor(val);
+                if (colorPickerRef != null) colorPickerRef.selectedColor(Color.ofArgb(colorInt));
+                if (colorPreviewBox != null) colorPreviewBox.surface(Surface.flat(colorInt));
+            } catch (Exception ignored) {}
+        }
+
+        private FlowLayout createToggleRow(String key, boolean currentVal, boolean defaultVal, Consumer<Boolean> setter) {
+            FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
+            row.verticalAlignment(VerticalAlignment.CENTER);
+            row.gap(6);
+
+            Component lbl = smallLabel(Text.translatable(key), 0.74f, 0xFFDDDDDD);
+            lbl.sizing(Sizing.fixed(160), Sizing.content());
+            row.child(lbl);
+
+            CheckboxComponent check = Components.checkbox(Text.literal(""));
+            check.checked(currentVal);
+            check.onChanged(setter::accept);
+            row.child(check);
+
+            FlowLayout resetBtn = createFlatButton(16, 16, smallLabel("↺", 0.7f, 0xFFAAAAAA), () -> {
+                check.checked(defaultVal);
+                setter.accept(defaultVal);
+            });
+            row.child(resetBtn);
+
+            return row;
+        }
+
+        @Override
+        public void populateTab(FlowLayout container) {
+            FlowLayout contentCol = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+            contentCol.gap(6);
+            contentCol.padding(Insets.of(4));
+
+            // Заголовок
+            contentCol.child(smallLabel(Text.translatable("text.config.mogdops-mod"), 0.85f, 0xFFFFAA00));
+
+            // Кнопка руководства
+            FlowLayout guideBtn = createFlatButton(200, 20, Text.translatable("text.config.mogdops-mod.open_guide"), () -> {
+                MinecraftClient.getInstance().setScreen(new WelcomeScreen());
+            });
+            contentCol.child(guideBtn.margins(Insets.bottom(4)));
+
+            // Переключатели
+            contentCol.child(createToggleRow("text.config.mogdops-mod.option.hideChatHUD",
+                    MogDopSModClient.CONFIG.hideChatHUD(), true, MogDopSModClient.CONFIG::hideChatHUD));
+
+            contentCol.child(createToggleRow("text.config.mogdops-mod.option.enableCustomNotifications",
+                    MogDopSModClient.CONFIG.enableCustomNotifications(), true, MogDopSModClient.CONFIG::enableCustomNotifications));
+
+            contentCol.child(createToggleRow("text.config.mogdops-mod.option.vanillaSkin",
+                    MogDopSModClient.CONFIG.vanillaSkin(), false, MogDopSModClient.CONFIG::vanillaSkin));
+
+            contentCol.child(createToggleRow("text.config.mogdops-mod.option.enableSelectionAnimation",
+                    MogDopSModClient.CONFIG.enableSelectionAnimation(), true, MogDopSModClient.CONFIG::enableSelectionAnimation));
+
+            contentCol.child(createToggleRow("text.config.mogdops-mod.option.enableSelectionParticles",
+                    MogDopSModClient.CONFIG.enableSelectionParticles(), true, MogDopSModClient.CONFIG::enableSelectionParticles));
+
+            contentCol.child(createToggleRow("text.config.mogdops-mod.option.toolExplosionFire",
+                    MogDopSModClient.CONFIG.toolExplosionFire(), false, MogDopSModClient.CONFIG::toolExplosionFire));
+
+            // Числовые параметры
+            FlowLayout radiusRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
+            radiusRow.verticalAlignment(VerticalAlignment.CENTER);
+            radiusRow.gap(6);
+            Component radLbl = smallLabel(Text.translatable("text.config.mogdops-mod.option.toolRemoverRadius"), 0.74f, 0xFFDDDDDD);
+            radLbl.sizing(Sizing.fixed(160), Sizing.content());
+            radiusRow.child(radLbl);
+
+            SmallLabelComponent radVal = smallLabel(String.valueOf(MogDopSModClient.CONFIG.toolRemoverRadius()), 0.75f, 0xFFFFFFFF);
+            FlowLayout decRad = createFlatButton(16, 16, smallLabel("-", 0.75f, 0xFFFFFFFF), () -> {
+                int nextVal = Math.max(1, MogDopSModClient.CONFIG.toolRemoverRadius() - 1);
+                MogDopSModClient.CONFIG.toolRemoverRadius(nextVal);
+                radVal.text(Text.literal(String.valueOf(nextVal)));
+            });
+            FlowLayout incRad = createFlatButton(16, 16, smallLabel("+", 0.75f, 0xFFFFFFFF), () -> {
+                int nextVal = Math.min(16, MogDopSModClient.CONFIG.toolRemoverRadius() + 1);
+                MogDopSModClient.CONFIG.toolRemoverRadius(nextVal);
+                radVal.text(Text.literal(String.valueOf(nextVal)));
+            });
+            radiusRow.child(decRad).child(radVal).child(incRad);
+            contentCol.child(radiusRow);
+
+            FlowLayout powerRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
+            powerRow.verticalAlignment(VerticalAlignment.CENTER);
+            powerRow.gap(6);
+            Component powLbl = smallLabel(Text.translatable("text.config.mogdops-mod.option.toolExplosionPower"), 0.74f, 0xFFDDDDDD);
+            powLbl.sizing(Sizing.fixed(160), Sizing.content());
+            powerRow.child(powLbl);
+
+            SmallLabelComponent powVal = smallLabel(String.format("%.1f", MogDopSModClient.CONFIG.toolExplosionPower()), 0.75f, 0xFFFFFFFF);
+            FlowLayout decPow = createFlatButton(16, 16, smallLabel("-", 0.75f, 0xFFFFFFFF), () -> {
+                float nextVal = Math.max(1.0F, MogDopSModClient.CONFIG.toolExplosionPower() - 0.5F);
+                MogDopSModClient.CONFIG.toolExplosionPower(nextVal);
+                powVal.text(Text.literal(String.format("%.1f", nextVal)));
+            });
+            FlowLayout incPow = createFlatButton(16, 16, smallLabel("+", 0.75f, 0xFFFFFFFF), () -> {
+                float nextVal = Math.min(50.0F, MogDopSModClient.CONFIG.toolExplosionPower() + 0.5F);
+                MogDopSModClient.CONFIG.toolExplosionPower(nextVal);
+                powVal.text(Text.literal(String.format("%.1f", nextVal)));
+            });
+            powerRow.child(decPow).child(powVal).child(incPow);
+            contentCol.child(powerRow);
+
+            // Настройка цвета выделения
+            FlowLayout colorRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
+            colorRow.verticalAlignment(VerticalAlignment.CENTER);
+            colorRow.gap(6);
+
+            Component colorLabel = smallLabel(Text.translatable("text.config.mogdops-mod.option.toolSelectionColor"), 0.74f, 0xFFDDDDDD);
+            colorLabel.sizing(Sizing.fixed(160), Sizing.content());
+            colorRow.child(colorLabel);
+
+            colorFieldRef = Components.textBox(Sizing.fixed(75));
+            colorFieldRef.setText(MogDopSModClient.CONFIG.toolSelectionColor());
+            colorFieldRef.onChanged().subscribe(val -> {
+                MogDopSModClient.CONFIG.toolSelectionColor(val);
+                updateColorFromText(val);
+            });
+            colorRow.child(colorFieldRef);
+
+            FlowLayout resetColorBtn = createFlatButton(16, 16, smallLabel("↺", 0.7f, 0xFFAAAAAA), () -> {
+                MogDopSModClient.CONFIG.toolSelectionColor("#FFAA00");
+                colorFieldRef.setText("#FFAA00");
+                updateColorFromText("#FFAA00");
+            });
+            colorRow.child(resetColorBtn);
+            contentCol.child(colorRow);
+
+            // Color Picker и палитра
+            FlowLayout paletteBox = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+            paletteBox.gap(4);
+
+            colorPickerRef = new ColorPickerComponent();
+            colorPickerRef.sizing(Sizing.fixed(200), Sizing.fixed(80));
+            colorPickerRef.showAlpha(false);
+            colorPickerRef.selectedColor(Color.ofArgb(parseHexColor(MogDopSModClient.CONFIG.toolSelectionColor())));
+            colorPickerRef.onChanged().subscribe(color -> {
+                String hex = String.format("#%06X", (color.argb() & 0xFFFFFF));
+                MogDopSModClient.CONFIG.toolSelectionColor(hex);
+                if (colorFieldRef != null) colorFieldRef.setText(hex);
+                if (colorPreviewBox != null) colorPreviewBox.surface(Surface.flat((0xFF << 24) | (color.argb() & 0xFFFFFF)));
+            });
+            paletteBox.child(colorPickerRef);
+
+            colorPreviewBox = Containers.horizontalFlow(Sizing.fixed(200), Sizing.fixed(8));
+            colorPreviewBox.surface(Surface.flat(parseHexColor(MogDopSModClient.CONFIG.toolSelectionColor())));
+            paletteBox.child(colorPreviewBox);
+
+            FlowLayout paletteRow = Containers.horizontalFlow(Sizing.content(), Sizing.content());
+            paletteRow.gap(4);
+            String[] hexSwatches = {"#FFAA00", "#00C8FF", "#FF5555", "#55FF55", "#AA00FF", "#FFFF55", "#FF55FF", "#FFFFFF"};
+            for (String hex : hexSwatches) {
+                int colorInt = parseHexColor(hex);
+                FlowLayout swatch = Containers.horizontalFlow(Sizing.fixed(14), Sizing.fixed(14));
+                swatch.surface(Surface.flat(colorInt));
+                swatch.cursorStyle(CursorStyle.HAND);
+                swatch.mouseDown().subscribe((mX, mY, button) -> {
+                    if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+                        MogDopSModClient.CONFIG.toolSelectionColor(hex);
+                        colorFieldRef.setText(hex);
+                        updateColorFromText(hex);
+                        return true;
+                    }
+                    return false;
+                });
+                paletteRow.child(swatch);
+            }
+            paletteBox.child(paletteRow);
+            contentCol.child(paletteBox);
+
+            // Кнопка сохранения
+            FlowLayout saveBtn = createFlatButton(140, 20, Text.translatable("text.config.mogdops-mod.save"), () -> {
+                MogDopSModClient.CONFIG.save();
+                if (SpawnerScreen.this.parent != null) {
+                    MinecraftClient.getInstance().setScreen(SpawnerScreen.this.parent);
+                } else {
+                    MinecraftClient client = MinecraftClient.getInstance();
+                    if (client.player != null) client.player.sendMessage(Text.literal("§a[Настройки] Конфигурация успешно сохранена!"), true);
+                }
+            });
+            contentCol.child(saveBtn.margins(Insets.top(6)));
+
+            ScrollContainer<FlowLayout> scroll = Containers.verticalScroll(Sizing.fill(100), Sizing.fill(100), contentCol);
             scroll.scrollbar(ScrollContainer.Scrollbar.flat(Color.ofArgb(0xAAFFFFFF)));
             container.child(scroll);
         }

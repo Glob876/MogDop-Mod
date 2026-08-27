@@ -4,6 +4,7 @@ import com.mogdop.mod.entity.ImageDisplayEntity;
 import com.mogdop.mod.network.*;
 import com.mogdop.mod.worldedit.WorldEditIntegration;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.block.AbstractBlock;
@@ -18,8 +19,10 @@ import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
+import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
@@ -44,10 +47,15 @@ public class MogDopSMod implements ModInitializer {
     public static Block MOB_SPAWNER_SLAB;
     public static BlockEntityType<MobSpawnerSlabBlockEntity> MOB_SPAWNER_SLAB_ENTITY;
     public static EntityType<ImageDisplayEntity> IMAGE_DISPLAY_ENTITY;
+    public static Item STAFF;
 
     @Override
     public void onInitialize() {
         LOGGER.info("MogDop's Mod Initializing v0.2.0 with Schematics & WorldEdit API & Image Entities...");
+
+        // Регистрация Творческого Посоха
+        STAFF = Registry.register(Registries.ITEM, Identifier.of(MOD_ID, "staff"),
+                new Item(new Item.Settings().maxCount(1)));
 
         MOB_SPAWNER_SLAB = Registry.register(Registries.BLOCK, Identifier.of(MOD_ID, "mob_spawner_slab"),
                 new MobSpawnerSlabBlock(AbstractBlock.Settings.copy(Blocks.STONE_SLAB).nonOpaque()));
@@ -98,6 +106,24 @@ public class MogDopSMod implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(OpenMobSpawnerSlabScreenPayload.ID, OpenMobSpawnerSlabScreenPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(SyncSchematicsListPayload.ID, SyncSchematicsListPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(SchematicPreviewPayload.ID, SchematicPreviewPayload.CODEC);
+
+        // Серверная команда /md staff
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            dispatcher.register(CommandManager.literal("md")
+                    .then(CommandManager.literal("staff")
+                            .executes(ctx -> {
+                                ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
+                                ItemStack stack = new ItemStack(STAFF);
+                                if (!player.getInventory().insertStack(stack)) {
+                                    player.dropItem(stack, false);
+                                }
+                                player.currentScreenHandler.syncState();
+                                ctx.getSource().sendFeedback(() -> Text.literal("§a[MogDop] Выдан Творческий Посох!"), false);
+                                return 1;
+                            })
+                    )
+            );
+        });
 
         // ОБРАБОТЧИК ИЗОБРАЖЕНИЙ
         ServerPlayNetworking.registerGlobalReceiver(SpawnImagePayload.ID, (payload, context) -> context.server().execute(() -> {
@@ -190,6 +216,7 @@ public class MogDopSMod implements ModInitializer {
             }
         }));
 
+        // ОБРАБОТЧИК ДЕЙСТВИЙ ИНСТРУМЕНТОВ
         ServerPlayNetworking.registerGlobalReceiver(ToolActionPayload.ID, (ToolActionPayload payload, ServerPlayNetworking.Context context) -> context.server().execute(() -> {
             ServerPlayerEntity player = context.player();
             ServerWorld world = player.getServerWorld();
@@ -222,7 +249,7 @@ public class MogDopSMod implements ModInitializer {
                     boolean fire = payload.explosionFire();
                     world.createExplosion(player, pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, power, fire, net.minecraft.world.World.ExplosionSourceType.TNT);
                 }
-                case "TELEPORT" -> player.teleport(pos.getX() + 0.5D, pos.getY() + 1.0D, pos.getZ() + 0.5D, true);
+                case "TELEPORT" -> player.teleport(world, pos.getX() + 0.5D, pos.getY() + 1.0D, pos.getZ() + 0.5D, player.getYaw(), player.getPitch());
             }
         }));
 
@@ -253,16 +280,19 @@ public class MogDopSMod implements ModInitializer {
             }
         }));
 
+        // ОБРАБОТЧИК СПАВНА СУЩНОСТЕЙ
         ServerPlayNetworking.registerGlobalReceiver(SpawnEntityPayload.ID, (SpawnEntityPayload payload, ServerPlayNetworking.Context context) -> context.server().execute(() -> {
             ServerPlayerEntity player = context.player();
             ServerWorld world = player.getServerWorld();
-            HitResult hitResult = player.raycast(50.0D, 1.0F, false);
+            HitResult hitResult = player.raycast(64.0D, 1.0F, false);
             Vec3d spawnPos = hitResult.getPos();
 
             if (hitResult.getType() == HitResult.Type.BLOCK) {
                 BlockHitResult blockHit = (BlockHitResult) hitResult;
                 Direction side = blockHit.getSide();
                 spawnPos = spawnPos.add(side.getOffsetX() * 0.5, side.getOffsetY() * 0.1, side.getOffsetZ() * 0.5);
+            } else {
+                spawnPos = player.getEyePos().add(player.getRotationVec(1.0F).multiply(3.0D));
             }
 
             Identifier id = Identifier.of(payload.entityId());
@@ -299,7 +329,16 @@ public class MogDopSMod implements ModInitializer {
             }
         }));
 
-        ServerPlayNetworking.registerGlobalReceiver(GiveItemPayload.ID, (GiveItemPayload payload, ServerPlayNetworking.Context context) -> context.server().execute(() -> context.player().getInventory().offerOrDrop(payload.stack())));
+        // НАДЕЖНЫЙ ОБРАБОТЧИК ВЫДАЧИ ПРЕДМЕТОВ (С СИНХРОНИЗАЦИЕЙ ИНВЕНТАРЯ)
+        ServerPlayNetworking.registerGlobalReceiver(GiveItemPayload.ID, (GiveItemPayload payload, ServerPlayNetworking.Context context) -> context.server().execute(() -> {
+            ServerPlayerEntity player = context.player();
+            ItemStack stack = payload.stack().copy();
+            if (stack.isEmpty()) return;
+            if (!player.getInventory().insertStack(stack)) {
+                player.dropItem(stack, false);
+            }
+            player.currentScreenHandler.syncState();
+        }));
 
         ServerPlayNetworking.registerGlobalReceiver(KillEntityPayload.ID, (KillEntityPayload payload, ServerPlayNetworking.Context context) -> context.server().execute(() -> {
             ServerPlayerEntity player = context.player();

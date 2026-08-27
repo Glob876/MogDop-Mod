@@ -17,6 +17,8 @@ import com.mogdop.mod.client.render.ImageDisplayEntityRenderer;
 import com.mogdop.mod.network.*;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -181,6 +183,9 @@ public class MogDopSModClient implements ClientModInitializer {
     public static int activeSpawnFireTicks = 0;
 
     public static boolean isSelectionAxe(ItemStack stack) {
+        if (stack.isOf(MogDopSMod.STAFF)) {
+            return true;
+        }
         if (!stack.isOf(Items.IRON_AXE)) {
             return false;
         }
@@ -190,7 +195,7 @@ public class MogDopSModClient implements ClientModInitializer {
         String name = stack.getName().getString().toLowerCase();
         Text customName = stack.get(DataComponentTypes.CUSTOM_NAME);
         String customStr = customName != null ? customName.toString().toLowerCase() : "";
-        return name.contains("топор") || name.contains("selection") || name.contains("axe") || customStr.contains("selection_axe");
+        return name.contains("посох") || name.contains("staff") || name.contains("топор") || name.contains("selection") || name.contains("axe") || customStr.contains("selection_axe");
     }
 
     public static void cycleToolMode(int dir) {
@@ -447,7 +452,50 @@ public class MogDopSModClient implements ClientModInitializer {
     public void onInitializeClient() {
         PlayerBlockHistoryManager.load();
 
-        // 1. Регистрация биндов клавиш
+        // 1. Регистрация клиентских команд (/md, /md settings, /md staff и т.д.)
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
+            dispatcher.register(ClientCommandManager.literal("md")
+                    .executes(ctx -> {
+                        MinecraftClient.getInstance().send(() -> MinecraftClient.getInstance().setScreen(new SpawnerScreen()));
+                        return 1;
+                    })
+                    .then(ClientCommandManager.literal("settings")
+                            .executes(ctx -> {
+                                MinecraftClient.getInstance().send(() -> MinecraftClient.getInstance().setScreen(new SpawnerScreen(null, 4)));
+                                return 1;
+                            })
+                    )
+                    .then(ClientCommandManager.literal("config")
+                            .executes(ctx -> {
+                                MinecraftClient.getInstance().send(() -> MinecraftClient.getInstance().setScreen(new SpawnerScreen(null, 4)));
+                                return 1;
+                            })
+                    )
+                    .then(ClientCommandManager.literal("guide")
+                            .executes(ctx -> {
+                                MinecraftClient.getInstance().send(() -> MinecraftClient.getInstance().setScreen(new WelcomeScreen()));
+                                return 1;
+                            })
+                    )
+                    .then(ClientCommandManager.literal("staff")
+                            .executes(ctx -> {
+                                ClientPlayNetworking.send(new GiveItemPayload(new ItemStack(MogDopSMod.STAFF)));
+                                if (MinecraftClient.getInstance().player != null) {
+                                    MinecraftClient.getInstance().player.sendMessage(Text.literal("§a[MogDop] Выдан Творческий Посох!"), true);
+                                }
+                                return 1;
+                            })
+                    )
+                    .then(ClientCommandManager.literal("schematics")
+                            .executes(ctx -> {
+                                MinecraftClient.getInstance().send(() -> MinecraftClient.getInstance().setScreen(new SchematicScreen()));
+                                return 1;
+                            })
+                    )
+            );
+        });
+
+        // 2. Регистрация биндов клавиш
         openSpawnerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.mogdops-mod.spawner",
                 InputUtil.Type.KEYSYM,
@@ -483,15 +531,15 @@ public class MogDopSModClient implements ClientModInitializer {
                 "category.mogdops-mod"
         ));
 
-        // 2. Регистрация рендереров и слоев
+        // 3. Регистрация рендереров и слоев
         EntityRendererRegistry.register(MogDopSMod.IMAGE_DISPLAY_ENTITY, ImageDisplayEntityRenderer::new);
         BlockRenderLayerMap.INSTANCE.putBlock(MogDopSMod.MOB_SPAWNER_SLAB, RenderLayer.getCutout());
 
-        // 3. Регистрация HUD
+        // 4. Регистрация HUD
         HudRenderCallback.EVENT.register(new SelectionAxeHud());
         HudRenderCallback.EVENT.register(new ChatNotificationHud());
 
-        // 4. Регистрация S2C пакетов
+        // 5. Регистрация S2C пакетов
         ClientPlayNetworking.registerGlobalReceiver(OpenMobSpawnerSlabScreenPayload.ID, (payload, ctx) -> ctx.client().execute(() -> {
             ctx.client().setScreen(new MobSpawnerSlabScreen(
                     payload.pos(),
@@ -519,7 +567,7 @@ public class MogDopSModClient implements ClientModInitializer {
             schematicPreviewActive = true;
         }));
 
-        // 5. Обработка ЛКМ (Возвращаем ActionResult.FAIL, чтобы предотвратить ломание блока)
+        // 6. Обработка ЛКМ по блоку
         AttackBlockCallback.EVENT.register((player, world, hand, pos, direction) -> {
             if (!world.isClient() || hand != Hand.MAIN_HAND) return ActionResult.PASS;
             if (!isSelectionAxe(player.getMainHandStack())) return ActionResult.PASS;
@@ -536,23 +584,23 @@ public class MogDopSModClient implements ClientModInitializer {
                     }
                     return ActionResult.FAIL;
                 }
-                case 1 -> {
+                case 1 -> { // Уничтожитель
                     ClientPlayNetworking.send(new ToolActionPayload("REMOVER", pos, 0F, false, CONFIG.toolRemoverRadius()));
                     return ActionResult.FAIL;
                 }
-                case 2 -> {
+                case 2 -> { // Взрыватель
                     ClientPlayNetworking.send(new ToolActionPayload("EXPLOSION", pos, CONFIG.toolExplosionPower(), CONFIG.toolExplosionFire(), 1));
                     return ActionResult.FAIL;
                 }
-                case 3 -> {
+                case 3 -> { // Телепортер
                     ClientPlayNetworking.send(new ToolActionPayload("TELEPORT", pos, 0F, false, 1));
                     return ActionResult.FAIL;
                 }
-                case 4 -> {
+                case 4 -> { // Спавнер
                     ClientPlayNetworking.send(new SpawnEntityPayload(activeSpawnId, activeSpawnCustomName, activeSpawnNameVisible, activeSpawnNoGravity, activeSpawnSilent, activeSpawnGlowing, activeSpawnIsBaby, activeSpawnSlimeSize, activeSpawnFireTicks));
                     return ActionResult.FAIL;
                 }
-                case 6 -> { // Изображения: Установка Точки 1 БЕЗ поломки блока
+                case 6 -> { // Изображения: Точка 1
                     MinecraftClient client = MinecraftClient.getInstance();
                     if (client.crosshairTarget instanceof BlockHitResult hitResult) {
                         imagePos1 = getSnappedPixelPoint(hitResult);
@@ -566,7 +614,7 @@ public class MogDopSModClient implements ClientModInitializer {
             return ActionResult.PASS;
         });
 
-        // 6. Обработка ПКМ
+        // 7. Обработка ПКМ по блоку
         UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
             if (!world.isClient() || hand != Hand.MAIN_HAND) return ActionResult.PASS;
             if (!isSelectionAxe(player.getMainHandStack())) return ActionResult.PASS;
@@ -587,7 +635,23 @@ public class MogDopSModClient implements ClientModInitializer {
                     }
                     return ActionResult.SUCCESS;
                 }
-                case 6 -> { // Изображения: Установка Точки 2 и открытие меню
+                case 1 -> { // Уничтожитель
+                    ClientPlayNetworking.send(new ToolActionPayload("REMOVER", pos, 0F, false, CONFIG.toolRemoverRadius()));
+                    return ActionResult.SUCCESS;
+                }
+                case 2 -> { // Взрыватель
+                    ClientPlayNetworking.send(new ToolActionPayload("EXPLOSION", pos, CONFIG.toolExplosionPower(), CONFIG.toolExplosionFire(), 1));
+                    return ActionResult.SUCCESS;
+                }
+                case 3 -> { // Телепортер
+                    ClientPlayNetworking.send(new ToolActionPayload("TELEPORT", pos, 0F, false, 1));
+                    return ActionResult.SUCCESS;
+                }
+                case 4 -> { // Спавнер
+                    ClientPlayNetworking.send(new SpawnEntityPayload(activeSpawnId, activeSpawnCustomName, activeSpawnNameVisible, activeSpawnNoGravity, activeSpawnSilent, activeSpawnGlowing, activeSpawnIsBaby, activeSpawnSlimeSize, activeSpawnFireTicks));
+                    return ActionResult.SUCCESS;
+                }
+                case 6 -> { // Изображения: Точка 2
                     if (imagePos1 == null) {
                         player.sendMessage(Text.literal("§c[Изображение] Сначала установите первую точку (ЛКМ)!"), true);
                         return ActionResult.SUCCESS;
@@ -602,19 +666,46 @@ public class MogDopSModClient implements ClientModInitializer {
             return ActionResult.PASS;
         });
 
+        // 8. Обработка кликов в воздухе и на дистанции
         UseItemCallback.EVENT.register((player, world, hand) -> {
             if (!world.isClient() || hand != Hand.MAIN_HAND) return TypedActionResult.pass(player.getStackInHand(hand));
             if (!isSelectionAxe(player.getMainHandStack())) return TypedActionResult.pass(player.getStackInHand(hand));
 
-            if (currentToolMode == 5) {
-                MinecraftClient.getInstance().setScreen(new SchematicScreen());
-                return TypedActionResult.success(player.getStackInHand(hand));
+            HitResult hit = player.raycast(100.0D, 1.0F, false);
+
+            switch (currentToolMode) {
+                case 1 -> { // Дальнобойный Уничтожитель
+                    if (hit.getType() == HitResult.Type.BLOCK) {
+                        ClientPlayNetworking.send(new ToolActionPayload("REMOVER", ((BlockHitResult) hit).getBlockPos(), 0F, false, CONFIG.toolRemoverRadius()));
+                        return TypedActionResult.success(player.getStackInHand(hand));
+                    }
+                }
+                case 2 -> { // Дальнобойный Взрыватель
+                    if (hit.getType() == HitResult.Type.BLOCK) {
+                        ClientPlayNetworking.send(new ToolActionPayload("EXPLOSION", ((BlockHitResult) hit).getBlockPos(), CONFIG.toolExplosionPower(), CONFIG.toolExplosionFire(), 1));
+                        return TypedActionResult.success(player.getStackInHand(hand));
+                    }
+                }
+                case 3 -> { // Дальнобойный Телепортер
+                    if (hit.getType() == HitResult.Type.BLOCK) {
+                        ClientPlayNetworking.send(new ToolActionPayload("TELEPORT", ((BlockHitResult) hit).getBlockPos(), 0F, false, 1));
+                        return TypedActionResult.success(player.getStackInHand(hand));
+                    }
+                }
+                case 4 -> { // Дальнобойный Спавнер
+                    ClientPlayNetworking.send(new SpawnEntityPayload(activeSpawnId, activeSpawnCustomName, activeSpawnNameVisible, activeSpawnNoGravity, activeSpawnSilent, activeSpawnGlowing, activeSpawnIsBaby, activeSpawnSlimeSize, activeSpawnFireTicks));
+                    return TypedActionResult.success(player.getStackInHand(hand));
+                }
+                case 5 -> { // Схематики
+                    MinecraftClient.getInstance().setScreen(new SchematicScreen());
+                    return TypedActionResult.success(player.getStackInHand(hand));
+                }
             }
 
             return TypedActionResult.pass(player.getStackInHand(hand));
         });
 
-        // 7. Тики клиента (Горячие клавиши)
+        // 9. Тики клиента (Горячие клавиши)
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             notificationManager.update();
 
@@ -639,7 +730,7 @@ public class MogDopSModClient implements ClientModInitializer {
             }
         });
 
-        // 8. Проверка приветственного экрана при входе
+        // 10. Приветственный экран при входе
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             if (!CONFIG.hasSeenWelcome()) {
                 client.execute(() -> client.setScreen(new WelcomeScreen()));
@@ -648,7 +739,7 @@ public class MogDopSModClient implements ClientModInitializer {
             }
         });
 
-        // 9. 3D Рендеринг выделения в мире
+        // 11. 3D Рендеринг выделения в мире
         WorldRenderEvents.AFTER_TRANSLUCENT.register(context -> {
             MinecraftClient client = MinecraftClient.getInstance();
             if (client.player == null || client.world == null) return;
@@ -662,7 +753,7 @@ public class MogDopSModClient implements ClientModInitializer {
 
             float[] col = getSelectionColor();
 
-            // 9.1 Режим изображений: плоское 2D выделение по пикселям со смещением от блока
+            // 11.1 Режим изображений
             if (currentToolMode == 6 && imagePos1 != null) {
                 Vec3d p2 = imagePos2;
                 if (p2 == null && client.crosshairTarget instanceof BlockHitResult hitResult) {
@@ -686,7 +777,7 @@ public class MogDopSModClient implements ClientModInitializer {
                 }
             }
 
-            // 9.2 Режим кубоида WorldEdit
+            // 11.2 Режим кубоида WorldEdit
             if (currentToolMode == 0 && currentSelectionMode == 0 && pos1 != null && pos2 != null) {
                 double minX = Math.min(pos1.getX(), pos2.getX());
                 double minY = Math.min(pos1.getY(), pos2.getY());
@@ -731,26 +822,96 @@ public class MogDopSModClient implements ClientModInitializer {
                 matrices.pop();
             }
 
-            // 9.3 Режимы Poly / Convex
-            if (currentToolMode == 0 && currentSelectionMode != 0 && !selectionPoints.isEmpty()) {
+            // 11.3 Режим Полигона 2D
+            if (currentToolMode == 0 && currentSelectionMode == 1 && !selectionPoints.isEmpty()) {
                 matrices.push();
                 matrices.translate(-camPos.x, -camPos.y, -camPos.z);
 
+                int minY = Integer.MAX_VALUE;
+                int maxY = Integer.MIN_VALUE;
+                for (BlockPos p : selectionPoints) {
+                    if (p.getY() < minY) minY = p.getY();
+                    if (p.getY() > maxY) maxY = p.getY();
+                }
+                double y1 = minY;
+                double y2 = maxY + 1.0;
+                int n = selectionPoints.size();
+
+                VertexConsumer quadsConsumer = consumers.getBuffer(SELECTION_QUADS);
+                for (int i = 0; i < n; i++) {
+                    if (i > 0 || n >= 3) {
+                        BlockPos pA = selectionPoints.get(i);
+                        BlockPos pB = selectionPoints.get((i + 1) % n);
+                        if (i == n - 1 && n < 3) break;
+
+                        double xA = pA.getX() + 0.5, zA = pA.getZ() + 0.5;
+                        double xB = pB.getX() + 0.5, zB = pB.getZ() + 0.5;
+
+                        MatrixStack.Entry entry = matrices.peek();
+                        quadsConsumer.vertex(entry, (float)xA, (float)y1, (float)zA).color(col[0], col[1], col[2], 0.20F);
+                        quadsConsumer.vertex(entry, (float)xB, (float)y1, (float)zB).color(col[0], col[1], col[2], 0.20F);
+                        quadsConsumer.vertex(entry, (float)xB, (float)y2, (float)zB).color(col[0], col[1], col[2], 0.20F);
+                        quadsConsumer.vertex(entry, (float)xA, (float)y2, (float)zA).color(col[0], col[1], col[2], 0.20F);
+
+                        quadsConsumer.vertex(entry, (float)xA, (float)y2, (float)zA).color(col[0], col[1], col[2], 0.20F);
+                        quadsConsumer.vertex(entry, (float)xB, (float)y2, (float)zB).color(col[0], col[1], col[2], 0.20F);
+                        quadsConsumer.vertex(entry, (float)xB, (float)y1, (float)zB).color(col[0], col[1], col[2], 0.20F);
+                        quadsConsumer.vertex(entry, (float)xA, (float)y1, (float)zA).color(col[0], col[1], col[2], 0.20F);
+                    }
+                }
+
                 VertexConsumer linesConsumer = consumers.getBuffer(SELECTION_LINES);
-                for (int i = 0; i < selectionPoints.size(); i++) {
+                for (int i = 0; i < n; i++) {
                     BlockPos p = selectionPoints.get(i);
-                    WorldRenderer.drawBox(matrices, linesConsumer, p.getX(), p.getY(), p.getZ(), p.getX() + 1.0, p.getY() + 1.0, p.getZ() + 1.0, 0.0F, 1.0F, 0.5F, 1.0F);
+                    WorldRenderer.drawBox(matrices, linesConsumer, p.getX(), p.getY(), p.getZ(), p.getX() + 1.0, p.getY() + 1.0, p.getZ() + 1.0, 1.0F, 0.8F, 0.0F, 1.0F);
+
+                    double xA = p.getX() + 0.5, zA = p.getZ() + 0.5;
+
+                    linesConsumer.vertex(matrices.peek(), (float)xA, (float)y1, (float)zA).color(col[0], col[1], col[2], 1.0F).normal(0, 1, 0);
+                    linesConsumer.vertex(matrices.peek(), (float)xA, (float)y2, (float)zA).color(col[0], col[1], col[2], 1.0F).normal(0, 1, 0);
+
+                    if (i < n - 1 || n >= 3) {
+                        BlockPos nextP = selectionPoints.get((i + 1) % n);
+                        double xB = nextP.getX() + 0.5, zB = nextP.getZ() + 0.5;
+
+                        linesConsumer.vertex(matrices.peek(), (float)xA, (float)y1, (float)zA).color(col[0], col[1], col[2], 1.0F).normal(0, 1, 0);
+                        linesConsumer.vertex(matrices.peek(), (float)xB, (float)y1, (float)zB).color(col[0], col[1], col[2], 1.0F).normal(0, 1, 0);
+
+                        linesConsumer.vertex(matrices.peek(), (float)xA, (float)y2, (float)zA).color(col[0], col[1], col[2], 1.0F).normal(0, 1, 0);
+                        linesConsumer.vertex(matrices.peek(), (float)xB, (float)y2, (float)zB).color(col[0], col[1], col[2], 1.0F).normal(0, 1, 0);
+                    }
+                }
+
+                matrices.pop();
+            }
+
+            // 11.4 Режим Выпуклого тела
+            if (currentToolMode == 0 && currentSelectionMode == 2 && !selectionPoints.isEmpty()) {
+                matrices.push();
+                matrices.translate(-camPos.x, -camPos.y, -camPos.z);
+
+                int n = selectionPoints.size();
+                VertexConsumer linesConsumer = consumers.getBuffer(SELECTION_LINES);
+                for (int i = 0; i < n; i++) {
+                    BlockPos p = selectionPoints.get(i);
+                    WorldRenderer.drawBox(matrices, linesConsumer, p.getX(), p.getY(), p.getZ(), p.getX() + 1.0, p.getY() + 1.0, p.getZ() + 1.0, 1.0F, 0.3F, 0.8F, 1.0F);
 
                     if (i > 0) {
                         BlockPos prev = selectionPoints.get(i - 1);
                         linesConsumer.vertex(matrices.peek(), (float)(prev.getX() + 0.5), (float)(prev.getY() + 0.5), (float)(prev.getZ() + 0.5)).color(0F, 1F, 1F, 1F).normal(0, 1, 0);
                         linesConsumer.vertex(matrices.peek(), (float)(p.getX() + 0.5), (float)(p.getY() + 0.5), (float)(p.getZ() + 0.5)).color(0F, 1F, 1F, 1F).normal(0, 1, 0);
                     }
+                    if (i == n - 1 && n >= 3) {
+                        BlockPos first = selectionPoints.get(0);
+                        linesConsumer.vertex(matrices.peek(), (float)(p.getX() + 0.5), (float)(p.getY() + 0.5), (float)(p.getZ() + 0.5)).color(0F, 1F, 1F, 1F).normal(0, 1, 0);
+                        linesConsumer.vertex(matrices.peek(), (float)(first.getX() + 0.5), (float)(first.getY() + 0.5), (float)(first.getZ() + 0.5)).color(0F, 1F, 1F, 1F).normal(0, 1, 0);
+                    }
                 }
+
                 matrices.pop();
             }
 
-            // 9.4 3D Предпросмотр Схематики
+            // 11.5 3D Предпросмотр Схематики
             if (schematicPreviewActive && client.crosshairTarget != null && client.crosshairTarget.getType() == HitResult.Type.BLOCK) {
                 BlockPos target = ((BlockHitResult) client.crosshairTarget).getBlockPos().offset(((BlockHitResult) client.crosshairTarget).getSide());
                 matrices.push();
