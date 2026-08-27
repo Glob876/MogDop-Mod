@@ -1,85 +1,46 @@
 plugins {
-	id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
-	id 'maven-publish'
+	id "architectury-plugin" version "3.4-SNAPSHOT"
+	id "dev.architectury.loom" version "${architectury_loom_version}" apply false
 }
 
-version = project.mod_version
-group = project.maven_group
+architectury {
+	minecraft = rootProject.minecraft_version
+}
 
-repositories {
-	// Стандартный Maven Central (для jankson и системных утилит)
-	mavenCentral()
+subprojects {
+	apply plugin: "dev.architectury.loom"
 
-	// Официальный репозиторий Fabric
-	maven {
-		name = "Fabric"
-		url = "https://maven.fabricmc.net/"
+	loom {
+		silentMojangMappingsLicense()
 	}
-}
 
-loom {
-	splitEnvironmentSourceSets()
-
-	mods {
-		"mogdops-mod" {
-			sourceSet sourceSets.main
-			sourceSet sourceSets.client
-		}
-	}
-}
-
-dependencies {
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-
-	// Fabric Loader & Fabric API
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-
-	// Библиотека JSON5-парсера для owo-config (скачивается с mavenCentral за секунду без прокси)
-	implementation "blue.endless:jankson:1.2.3"
-
-	// Все локальные моды из папки 'libs' (owo-lib, worldedit, modmenu и др.)
-	modImplementation fileTree(dir: 'libs', include: ['*.jar'])
-	annotationProcessor fileTree(dir: 'libs', include: ['*.jar'])
-	clientAnnotationProcessor fileTree(dir: 'libs', include: ['*.jar'])
-}
-
-processResources {
-	def version = project.version
-	inputs.property "version", version
-
-	filesMatching("fabric.mod.json") {
-		expand "version": version
-	}
-}
-
-tasks.withType(JavaCompile).configureEach {
-	it.options.release = 21
-}
-
-java {
-	withSourcesJar()
-
-	sourceCompatibility = JavaVersion.VERSION_21
-	targetCompatibility = JavaVersion.VERSION_21
-}
-
-jar {
-	def projectName = project.name
-	inputs.property "projectName", projectName
-
-	from("LICENSE") {
-		rename { "${it}_$projectName" }
-	}
-}
-
-publishing {
-	publications {
-		create("mavenJava", MavenPublication) {
-			from components.java
-		}
-	}
 	repositories {
+		mavenCentral()
+		maven { url = "https://maven.fabricmc.net/" }
+		maven { url = "https://maven.architectury.dev/" }
+		maven { url = "https://maven.neoforged.net/releases/" }
+		flatDir { dirs rootProject.file("libs") }
 	}
+
+	dependencies {
+		minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
+		mappings "net.fabricmc:yarn:${rootProject.yarn_mappings}:v2"
+	}
+
+	tasks.withType(JavaCompile).configureEach {
+		it.options.release = 21
+	}
+
+	java {
+		withSourcesJar()
+		sourceCompatibility = JavaVersion.VERSION_21
+		targetCompatibility = JavaVersion.VERSION_21
+	}
+}
+
+allprojects {
+	apply plugin: "architectury-plugin"
+
+	version = rootProject.mod_version
+	group = rootProject.maven_group
 }

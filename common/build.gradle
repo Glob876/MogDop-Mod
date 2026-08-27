@@ -1,0 +1,16 @@
+architectury {
+    common(rootProject.findProperty("enabled_platforms") ?: "fabric,neoforge")
+}
+
+dependencies {
+    // 100% ЛОКАЛЬНАЯ ЗАГРУЗКА ИЗ ПАПКИ libs:
+    // Все моды и библиотеки (architectury, owo-lib, worldedit, modmenu, endec, jankson) берутся с диска
+    modImplementation fileTree(dir: "${rootProject.projectDir}/libs", include: ['*.jar'])
+    annotationProcessor fileTree(dir: "${rootProject.projectDir}/libs", include: ['*.jar'])
+
+    implementation "blue.endless:jankson:1.2.3"
+    implementation "io.wispforest:endec:0.1.5"
+    implementation "io.wispforest.endec:netty:0.1.2"
+    implementation "io.wispforest.endec:gson:0.1.3"
+    implementation "io.wispforest.endec:jankson:0.1.3"
+}
