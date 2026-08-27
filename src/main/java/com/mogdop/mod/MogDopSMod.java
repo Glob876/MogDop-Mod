@@ -63,7 +63,7 @@ public class MogDopSMod implements ModInitializer {
                         .dimensions(0.5F, 0.5F)
                         .maxTrackingRange(12)
                         .trackingTickInterval(10)
-                        .build("image_display"));
+                        .build());
 
         // Регистрация C2S Пакетов
         PayloadTypeRegistry.playC2S().register(SpawnEntityPayload.ID, SpawnEntityPayload.CODEC);

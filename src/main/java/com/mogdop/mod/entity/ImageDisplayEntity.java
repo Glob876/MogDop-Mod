@@ -11,13 +11,13 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import org.joml.Vector3f;
+
+import java.util.Locale;
 
 public class ImageDisplayEntity extends Entity {
 
     private static final TrackedData<String> IMAGE_NAME = DataTracker.registerData(ImageDisplayEntity.class, TrackedDataHandlerRegistry.STRING);
-    private static final TrackedData<Vector3f> POS1 = DataTracker.registerData(ImageDisplayEntity.class, TrackedDataHandlerRegistry.VECTOR_3F);
-    private static final TrackedData<Vector3f> POS2 = DataTracker.registerData(ImageDisplayEntity.class, TrackedDataHandlerRegistry.VECTOR_3F);
+    private static final TrackedData<String> COORDS = DataTracker.registerData(ImageDisplayEntity.class, TrackedDataHandlerRegistry.STRING);
     private static final TrackedData<Integer> FACING = DataTracker.registerData(ImageDisplayEntity.class, TrackedDataHandlerRegistry.INTEGER);
 
     public ImageDisplayEntity(EntityType<?> type, World world) {
@@ -28,15 +28,13 @@ public class ImageDisplayEntity extends Entity {
     @Override
     protected void initDataTracker(DataTracker.Builder builder) {
         builder.add(IMAGE_NAME, "");
-        builder.add(POS1, new Vector3f(0, 0, 0));
-        builder.add(POS2, new Vector3f(0, 0, 0));
+        builder.add(COORDS, "0;0;0;0;0;0");
         builder.add(FACING, Direction.UP.getId());
     }
 
     public void setImageData(String imageName, Vec3d pos1, Vec3d pos2, Direction facing) {
         this.dataTracker.set(IMAGE_NAME, imageName);
-        this.dataTracker.set(POS1, new Vector3f((float) pos1.x, (float) pos1.y, (float) pos1.z));
-        this.dataTracker.set(POS2, new Vector3f((float) pos2.x, (float) pos2.y, (float) pos2.z));
+        this.dataTracker.set(COORDS, String.format(Locale.ROOT, "%.4f;%.4f;%.4f;%.4f;%.4f;%.4f", pos1.x, pos1.y, pos1.z, pos2.x, pos2.y, pos2.z));
         this.dataTracker.set(FACING, facing.getId());
 
         double midX = (pos1.x + pos2.x) / 2.0;
@@ -64,13 +62,27 @@ public class ImageDisplayEntity extends Entity {
     }
 
     public Vec3d getPos1() {
-        Vector3f v = this.dataTracker.get(POS1);
-        return new Vec3d(v.x(), v.y(), v.z());
+        String c = this.dataTracker.get(COORDS);
+        if (c == null || c.isEmpty()) return Vec3d.ZERO;
+        String[] split = c.split(";");
+        if (split.length >= 3) {
+            try {
+                return new Vec3d(Double.parseDouble(split[0]), Double.parseDouble(split[1]), Double.parseDouble(split[2]));
+            } catch (Exception ignored) {}
+        }
+        return Vec3d.ZERO;
     }
 
     public Vec3d getPos2() {
-        Vector3f v = this.dataTracker.get(POS2);
-        return new Vec3d(v.x(), v.y(), v.z());
+        String c = this.dataTracker.get(COORDS);
+        if (c == null || c.isEmpty()) return Vec3d.ZERO;
+        String[] split = c.split(";");
+        if (split.length >= 6) {
+            try {
+                return new Vec3d(Double.parseDouble(split[3]), Double.parseDouble(split[4]), Double.parseDouble(split[5]));
+            } catch (Exception ignored) {}
+        }
+        return Vec3d.ZERO;
     }
 
     public Direction getFacingSide() {

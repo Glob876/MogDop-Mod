@@ -15,17 +15,13 @@ import com.mogdop.mod.client.gui.SelectionAxeHud;
 import com.mogdop.mod.client.gui.ChatNotificationHud;
 import com.mogdop.mod.client.render.ImageDisplayEntityRenderer;
 import com.mogdop.mod.network.*;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
-import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.blaze3d.systems.RenderSystem;
-import io.wispforest.owo.config.ui.ConfigScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
@@ -36,20 +32,19 @@ import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.RenderPhase;
-import net.minecraft.client.render.VertexFormat;
-import net.minecraft.client.render.VertexFormats;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.VertexFormat;
+import net.minecraft.client.render.VertexFormats;
 import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.particle.ParticleEffect;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
@@ -63,8 +58,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -86,14 +79,12 @@ public class MogDopSModClient implements ClientModInitializer {
     public static BlockPos pos1 = null;
     public static BlockPos pos2 = null;
 
-    // Режим работы с точечными координатами изображений (по пикселям / поверхности)
     public static Vec3d imagePos1 = null;
     public static Vec3d imagePos2 = null;
     public static Direction imageSide = Direction.UP;
 
     public static final List<BlockPos> selectionPoints = new ArrayList<>();
 
-    // Переменные режима 3D Предпросмотра схематики
     public static boolean schematicPreviewActive = false;
     public static int schematicSizeX = 1;
     public static int schematicSizeY = 1;
@@ -102,7 +93,6 @@ public class MogDopSModClient implements ClientModInitializer {
 
     public static double schemAnimX = 0, schemAnimY = 0, schemAnimZ = 0;
     public static boolean schemAnimInit = false;
-    public static BlockPos currentSchemTargetPos = null;
 
     public static void syncSelectionPoints() {
         if (currentSelectionMode == 0) {
@@ -342,4 +332,300 @@ public class MogDopSModClient implements ClientModInitializer {
             case EAST -> {
                 consumer.vertex(entry, (float)x2, (float)y1, (float)z1).color(r, g, b, a);
                 consumer.vertex(entry, (float)x2, (float)y2, (float)z1).color(r, g, b, a);
-                consumer.vertex(entry, (float)x2, (float)
+                consumer.vertex(entry, (float)x2, (float)y2, (float)z2).color(r, g, b, a);
+                consumer.vertex(entry, (float)x2, (float)y1, (float)z2).color(r, g, b, a);
+            }
+        }
+    }
+
+    @Override
+    public void onInitializeClient() {
+        PlayerBlockHistoryManager.load();
+
+        // 1. Регистрация биндов клавиш
+        openSpawnerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.mogdops-mod.spawner",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_GRAVE_ACCENT,
+                "category.mogdops-mod"
+        ));
+
+        quickFillKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.mogdops-mod.quick_fill",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_H,
+                "category.mogdops-mod"
+        ));
+
+        openToolSelectorKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.mogdops-mod.tool_selector",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_G,
+                "category.mogdops-mod"
+        ));
+
+        openBlockSelectorKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.mogdops-mod.block_selector",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_J,
+                "category.mogdops-mod"
+        ));
+
+        openSchematicKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.mogdops-mod.schematic",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_K,
+                "category.mogdops-mod"
+        ));
+
+        // 2. Регистрация рендереров и слоев
+        EntityRendererRegistry.register(MogDopSMod.IMAGE_DISPLAY_ENTITY, ImageDisplayEntityRenderer::new);
+        BlockRenderLayerMap.INSTANCE.putBlock(MogDopSMod.MOB_SPAWNER_SLAB, RenderLayer.getCutout());
+
+        // 3. Регистрация HUD
+        HudRenderCallback.EVENT.register(new SelectionAxeHud());
+        HudRenderCallback.EVENT.register(new ChatNotificationHud());
+
+        // 4. Регистрация S2C пакетов
+        ClientPlayNetworking.registerGlobalReceiver(OpenMobSpawnerSlabScreenPayload.ID, (payload, ctx) -> ctx.client().execute(() -> {
+            ctx.client().setScreen(new MobSpawnerSlabScreen(
+                    payload.pos(),
+                    payload.mobId(),
+                    payload.spawnInterval(),
+                    payload.maxMobs(),
+                    payload.active(),
+                    payload.spawnRange()
+            ));
+        }));
+
+        ClientPlayNetworking.registerGlobalReceiver(SyncSchematicsListPayload.ID, (payload, ctx) -> ctx.client().execute(() -> {
+            SchematicScreen.cachedSchematicsList.clear();
+            SchematicScreen.cachedSchematicsList.addAll(payload.files());
+            if (ctx.client().currentScreen instanceof SchematicScreen screen) {
+                screen.rebuildFilesUI();
+            }
+        }));
+
+        ClientPlayNetworking.registerGlobalReceiver(SchematicPreviewPayload.ID, (payload, ctx) -> ctx.client().execute(() -> {
+            schematicSizeX = payload.sizeX();
+            schematicSizeY = payload.sizeY();
+            schematicSizeZ = payload.sizeZ();
+            schematicName = payload.filename();
+            schematicPreviewActive = true;
+            schemAnimInit = false;
+        }));
+
+        // 5. Обработка действий Топора
+        AttackBlockCallback.EVENT.register((player, world, hand, pos, direction) -> {
+            if (!world.isClient() || hand != Hand.MAIN_HAND) return ActionResult.PASS;
+            if (!isSelectionAxe(player.getMainHandStack())) return ActionResult.PASS;
+
+            switch (currentToolMode) {
+                case 0 -> { // Режим Выделения
+                    if (currentSelectionMode == 0) {
+                        pos1 = pos;
+                        syncSelectionPoints();
+                        player.sendMessage(Text.translatable("mogdops-mod.selection.pos1", pos.toShortString()), true);
+                    } else {
+                        selectionPoints.add(pos);
+                        player.sendMessage(Text.translatable("mogdops-mod.selection.point_added", selectionPoints.size(), pos.toShortString()), true);
+                    }
+                    return ActionResult.SUCCESS;
+                }
+                case 1 -> { // Уничтожитель
+                    ClientPlayNetworking.send(new ToolActionPayload("REMOVER", pos, 0F, false, CONFIG.toolRemoverRadius()));
+                    return ActionResult.SUCCESS;
+                }
+                case 2 -> { // Взрыв
+                    ClientPlayNetworking.send(new ToolActionPayload("EXPLOSION", pos, CONFIG.toolExplosionPower(), CONFIG.toolExplosionFire(), 1));
+                    return ActionResult.SUCCESS;
+                }
+                case 3 -> { // Телепортация
+                    ClientPlayNetworking.send(new ToolActionPayload("TELEPORT", pos, 0F, false, 1));
+                    return ActionResult.SUCCESS;
+                }
+                case 4 -> { // Спавн
+                    ClientPlayNetworking.send(new SpawnEntityPayload(activeSpawnId, activeSpawnCustomName, activeSpawnNameVisible, activeSpawnNoGravity, activeSpawnSilent, activeSpawnGlowing, activeSpawnIsBaby, activeSpawnSlimeSize, activeSpawnFireTicks));
+                    return ActionResult.SUCCESS;
+                }
+                case 6 -> { // Изображения: Pos1
+                    imagePos1 = new Vec3d(pos.getX(), pos.getY(), pos.getZ());
+                    player.sendMessage(Text.literal("§a[Изображения] Точка 1: " + pos.toShortString()), true);
+                    return ActionResult.SUCCESS;
+                }
+            }
+            return ActionResult.PASS;
+        });
+
+        UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
+            if (!world.isClient() || hand != Hand.MAIN_HAND) return ActionResult.PASS;
+            if (!isSelectionAxe(player.getMainHandStack())) return ActionResult.PASS;
+
+            BlockPos pos = hitResult.getBlockPos();
+
+            switch (currentToolMode) {
+                case 0 -> {
+                    if (currentSelectionMode == 0) {
+                        pos2 = pos;
+                        syncSelectionPoints();
+                        player.sendMessage(Text.translatable("mogdops-mod.selection.pos2", pos.toShortString()), true);
+                    } else {
+                        if (!selectionPoints.isEmpty()) {
+                            selectionPoints.remove(selectionPoints.size() - 1);
+                            player.sendMessage(Text.translatable("mogdops-mod.selection.point_removed", selectionPoints.size()), true);
+                        }
+                    }
+                    return ActionResult.SUCCESS;
+                }
+                case 6 -> {
+                    imagePos2 = new Vec3d(pos.getX() + 1.0, pos.getY() + 1.0, pos.getZ() + 1.0);
+                    imageSide = hitResult.getSide();
+                    player.sendMessage(Text.literal("§b[Изображения] Точка 2: " + pos.toShortString()), true);
+                    MinecraftClient.getInstance().setScreen(new ImageSelectorScreen());
+                    return ActionResult.SUCCESS;
+                }
+            }
+            return ActionResult.PASS;
+        });
+
+        UseItemCallback.EVENT.register((player, world, hand) -> {
+            if (!world.isClient() || hand != Hand.MAIN_HAND) return TypedActionResult.pass(player.getStackInHand(hand));
+            if (!isSelectionAxe(player.getMainHandStack())) return TypedActionResult.pass(player.getStackInHand(hand));
+
+            if (currentToolMode == 5) {
+                MinecraftClient.getInstance().setScreen(new SchematicScreen());
+                return TypedActionResult.success(player.getStackInHand(hand));
+            } else if (currentToolMode == 6) {
+                MinecraftClient.getInstance().setScreen(new ImageSelectorScreen());
+                return TypedActionResult.success(player.getStackInHand(hand));
+            }
+
+            return TypedActionResult.pass(player.getStackInHand(hand));
+        });
+
+        // 6. Тики клиента (Горячие клавиши)
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            notificationManager.update();
+
+            while (openSpawnerKey.wasPressed()) {
+                client.setScreen(new SpawnerScreen());
+            }
+
+            if (quickFillKey.isPressed() && !(client.currentScreen instanceof QuickFillReplaceScreen)) {
+                client.setScreen(new QuickFillReplaceScreen());
+            }
+
+            while (openToolSelectorKey.wasPressed()) {
+                client.setScreen(new ToolSelectorScreen());
+            }
+
+            if (openBlockSelectorKey.isPressed() && !(client.currentScreen instanceof SelectionModeScreen)) {
+                client.setScreen(new SelectionModeScreen());
+            }
+
+            while (openSchematicKey.wasPressed()) {
+                client.setScreen(new SchematicScreen());
+            }
+        });
+
+        // 7. Проверка приветственного экрана при входе
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+            if (!CONFIG.hasSeenWelcome()) {
+                client.execute(() -> client.setScreen(new WelcomeScreen()));
+                CONFIG.hasSeenWelcome(true);
+                CONFIG.save();
+            }
+        });
+
+        // 8. 3D Рендеринг выделения в мире
+        WorldRenderEvents.AFTER_TRANSLUCENT.register(context -> {
+            MinecraftClient client = MinecraftClient.getInstance();
+            if (client.player == null || client.world == null) return;
+            if (!isSelectionAxe(client.player.getMainHandStack())) return;
+
+            Camera camera = context.camera();
+            Vec3d camPos = camera.getPos();
+            MatrixStack matrices = context.matrixStack();
+            VertexConsumerProvider consumers = context.consumers();
+            if (consumers == null) return;
+
+            float[] col = getSelectionColor();
+
+            // 8.1 Режим кубоида
+            if (currentSelectionMode == 0 && pos1 != null && pos2 != null) {
+                double minX = Math.min(pos1.getX(), pos2.getX());
+                double minY = Math.min(pos1.getY(), pos2.getY());
+                double minZ = Math.min(pos1.getZ(), pos2.getZ());
+                double maxX = Math.max(pos1.getX(), pos2.getX()) + 1.0;
+                double maxY = Math.max(pos1.getY(), pos2.getY()) + 1.0;
+                double maxZ = Math.max(pos1.getZ(), pos2.getZ()) + 1.0;
+
+                if (!selectionAnimInitialized) {
+                    animMinX = minX; animMinY = minY; animMinZ = minZ;
+                    animMaxX = maxX; animMaxY = maxY; animMaxZ = maxZ;
+                    selectionAnimInitialized = true;
+                }
+
+                if (CONFIG.enableSelectionAnimation()) {
+                    double speed = 0.25;
+                    animMinX += (minX - animMinX) * speed;
+                    animMinY += (minY - animMinY) * speed;
+                    animMinZ += (minZ - animMinZ) * speed;
+                    animMaxX += (maxX - animMaxX) * speed;
+                    animMaxY += (maxY - animMaxY) * speed;
+                    animMaxZ += (maxZ - animMaxZ) * speed;
+                } else {
+                    animMinX = minX; animMinY = minY; animMinZ = minZ;
+                    animMaxX = maxX; animMaxY = maxY; animMaxZ = maxZ;
+                }
+
+                matrices.push();
+                matrices.translate(-camPos.x, -camPos.y, -camPos.z);
+
+                VertexConsumer linesConsumer = consumers.getBuffer(SELECTION_LINES);
+                WorldRenderer.drawBox(matrices, linesConsumer, animMinX, animMinY, animMinZ, animMaxX, animMaxY, animMaxZ, col[0], col[1], col[2], 1.0F);
+
+                VertexConsumer quadsConsumer = consumers.getBuffer(SELECTION_QUADS);
+                Direction hitFace = getTargetedSelectionFace();
+
+                for (Direction dir : Direction.values()) {
+                    float faceAlpha = (dir == hitFace) ? 0.35F : 0.12F;
+                    drawFaceQuad(matrices, quadsConsumer, dir, animMinX, animMinY, animMinZ, animMaxX, animMaxY, animMaxZ, col[0], col[1], col[2], faceAlpha);
+                }
+
+                matrices.pop();
+            }
+
+            // 8.2 Режимы Poly / Convex
+            if (currentSelectionMode != 0 && !selectionPoints.isEmpty()) {
+                matrices.push();
+                matrices.translate(-camPos.x, -camPos.y, -camPos.z);
+
+                VertexConsumer linesConsumer = consumers.getBuffer(SELECTION_LINES);
+                for (int i = 0; i < selectionPoints.size(); i++) {
+                    BlockPos p = selectionPoints.get(i);
+                    WorldRenderer.drawBox(matrices, linesConsumer, p.getX(), p.getY(), p.getZ(), p.getX() + 1.0, p.getY() + 1.0, p.getZ() + 1.0, 0.0F, 1.0F, 0.5F, 1.0F);
+
+                    if (i > 0) {
+                        BlockPos prev = selectionPoints.get(i - 1);
+                        linesConsumer.vertex(matrices.peek(), (float)(prev.getX() + 0.5), (float)(prev.getY() + 0.5), (float)(prev.getZ() + 0.5)).color(0F, 1F, 1F, 1F).normal(0, 1, 0);
+                        linesConsumer.vertex(matrices.peek(), (float)(p.getX() + 0.5), (float)(p.getY() + 0.5), (float)(p.getZ() + 0.5)).color(0F, 1F, 1F, 1F).normal(0, 1, 0);
+                    }
+                }
+                matrices.pop();
+            }
+
+            // 8.3 3D Предпросмотр Схематики
+            if (schematicPreviewActive && client.crosshairTarget != null && client.crosshairTarget.getType() == HitResult.Type.BLOCK) {
+                BlockPos target = ((BlockHitResult) client.crosshairTarget).getBlockPos().offset(((BlockHitResult) client.crosshairTarget).getSide());
+                matrices.push();
+                matrices.translate(-camPos.x, -camPos.y, -camPos.z);
+
+                VertexConsumer linesConsumer = consumers.getBuffer(SELECTION_LINES);
+                WorldRenderer.drawBox(matrices, linesConsumer, target.getX(), target.getY(), target.getZ(), target.getX() + schematicSizeX, target.getY() + schematicSizeY, target.getZ() + schematicSizeZ, 0.0F, 0.8F, 1.0F, 1.0F);
+
+                matrices.pop();
+            }
+        });
+    }
+}

@@ -157,7 +157,7 @@ public class WorldEditIntegration {
             session.setClipboard(new ClipboardHolder(clipboard));
 
             BlockVector3 dims = clipboard.getDimensions();
-            return new Vec3i(dims.getBlockX(), dims.getBlockY(), dims.getBlockZ());
+            return new Vec3i(dims.x(), dims.y(), dims.z());
         } catch (Exception e) {
             e.printStackTrace();
             return null;

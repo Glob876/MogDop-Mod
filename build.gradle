@@ -7,19 +7,13 @@ version = project.mod_version
 group = project.maven_group
 
 repositories {
+	// Стандартный Maven Central (для jankson и системных утилит)
+	mavenCentral()
+
 	// Официальный репозиторий Fabric
-	maven { url 'https://maven.fabricmc.net/' }
-	maven { url 'https://maven.wispforest.io/releases/' }
-	maven { url 'https://maven.terraformersmc.com/releases/' }
-	// Репозиторий Modrinth Maven (WorldEdit)
 	maven {
-		name = "Modrinth"
-		url = "https://api.modrinth.com/maven"
-	}
-	// Репозиторий CurseMaven (Запасной зеркальный репозиторий)
-	maven {
-		name = "CurseMaven"
-		url = "https://www.cursemaven.com"
+		name = "Fabric"
+		url = "https://maven.fabricmc.net/"
 	}
 }
 
@@ -38,23 +32,17 @@ dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
 
-	// ВАЖНОЕ ИСПРАВЛЕНИЕ: Двоеточие между net.fabricmc и fabric-loader
+	// Fabric Loader & Fabric API
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-
-	// Fabric API
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-	// Подключение owo-lib
-	modImplementation "io.wispforest:owo-lib:${project.owo_version}"
-	// Включение owo-sentinel (автоматически предложит скачать библиотеку игроку, если её нет)
-	include "io.wispforest:owo-sentinel:${project.owo_version}"
-	modCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
+	// Библиотека JSON5-парсера для owo-config (скачивается с mavenCentral за секунду без прокси)
+	implementation "blue.endless:jankson:1.2.3"
 
-	// ПОДКЛЮЧЕНИЕ ОБРАБОТЧИКА АННОТАЦИЙ owo-config В ОСНОВНОЙ СЕТ
-	annotationProcessor "io.wispforest:owo-lib:${project.owo_version}"
-
-	// Подключение WorldEdit Fabric 1.21.1 через Modrinth Maven
-	modImplementation "maven.modrinth:worldedit:7.3.8"
+	// Все локальные моды из папки 'libs' (owo-lib, worldedit, modmenu и др.)
+	modImplementation fileTree(dir: 'libs', include: ['*.jar'])
+	annotationProcessor fileTree(dir: 'libs', include: ['*.jar'])
+	clientAnnotationProcessor fileTree(dir: 'libs', include: ['*.jar'])
 }
 
 processResources {
@@ -82,7 +70,7 @@ jar {
 	inputs.property "projectName", projectName
 
 	from("LICENSE") {
-		rename { "${it}_$projectName"}
+		rename { "${it}_$projectName" }
 	}
 }
 
