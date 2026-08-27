@@ -18,19 +18,24 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.text.Text;
 import net.minecraft.util.Util;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
 
+    private String currentRelPath = ""; // Пустой = корневая папка 'pics'
     private String searchFilter = "";
     private String selectedFilename = null;
 
+    private LabelComponent pathBreadcrumbLabel;
     private FlowLayout fileListContainer;
     private FlowLayout rightPreviewPanel;
 
@@ -42,6 +47,64 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     protected @NotNull OwoUIAdapter<FlowLayout> createAdapter() {
         return OwoUIAdapter.create(this, Containers::verticalFlow);
+    }
+
+    private File getBasePicsFolder() {
+        File folder = FabricLoader.getInstance().getConfigDir().resolve("pics").toFile();
+        if (!folder.exists()) folder.mkdirs();
+        return folder;
+    }
+
+    private File getCurrentFolder() {
+        File base = getBasePicsFolder();
+        if (currentRelPath.isEmpty()) return base;
+        File target = new File(base, currentRelPath);
+        try {
+            if (!target.getCanonicalPath().startsWith(base.getCanonicalPath())) {
+                currentRelPath = "";
+                return base;
+            }
+        } catch (Exception e) {
+            currentRelPath = "";
+            return base;
+        }
+        return target;
+    }
+
+    private void navigateUp() {
+        if (currentRelPath.isEmpty()) return;
+        int lastSlash = currentRelPath.lastIndexOf('/');
+        if (lastSlash == -1) {
+            lastSlash = currentRelPath.lastIndexOf('\\');
+        }
+        if (lastSlash <= 0) {
+            currentRelPath = "";
+        } else {
+            currentRelPath = currentRelPath.substring(0, lastSlash);
+        }
+        selectedFilename = null;
+        updatePathDisplay();
+        rebuildFileList();
+        updatePreviewPanel();
+    }
+
+    private void enterDirectory(String dirName) {
+        if (currentRelPath.isEmpty()) {
+            currentRelPath = dirName;
+        } else {
+            currentRelPath = currentRelPath + "/" + dirName;
+        }
+        selectedFilename = null;
+        updatePathDisplay();
+        rebuildFileList();
+        updatePreviewPanel();
+    }
+
+    private void updatePathDisplay() {
+        if (pathBreadcrumbLabel != null) {
+            String display = "/pics" + (currentRelPath.isEmpty() ? "/" : "/" + currentRelPath + "/");
+            pathBreadcrumbLabel.text(Text.literal("📁 " + display));
+        }
     }
 
     @Override
@@ -63,9 +126,16 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
         mainBox.padding(Insets.of(10));
         mainBox.gap(15);
 
-        // ================= ЛЕВАЯ КОЛОНКА (Список файлов + Поиск + Кнопка Открыть папку) =================
+        // ================= ЛЕВАЯ КОЛОНКА (Список папок/файлов + Навигация) =================
         FlowLayout leftCol = Containers.verticalFlow(Sizing.fixed(235), Sizing.fill(100));
-        leftCol.gap(8);
+        leftCol.gap(6);
+
+        // Отображение текущего пути (хлебные крошки)
+        pathBreadcrumbLabel = Components.label(Text.literal(""));
+        pathBreadcrumbLabel.color(Color.ofArgb(0xFF55FFFF));
+        pathBreadcrumbLabel.sizing(Sizing.fill(100), Sizing.content());
+        updatePathDisplay();
+        leftCol.child(pathBreadcrumbLabel);
 
         TextBoxComponent searchBox = Components.textBox(Sizing.fill(100));
         searchBox.setPlaceholder(Text.translatable("mogdops-mod.image.search"));
@@ -80,7 +150,7 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
         btnRow.gap(6);
 
         FlowLayout openFolderBtn = createFlatButton(130, 20, Text.translatable("mogdops-mod.image.open_folder"), () -> {
-            File folder = FabricLoader.getInstance().getConfigDir().resolve("pics").toFile();
+            File folder = getCurrentFolder();
             if (!folder.exists()) folder.mkdirs();
             Util.getOperatingSystem().open(folder);
         });
@@ -103,11 +173,11 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
 
         mainBox.child(leftCol);
 
-        // ================= ПРАВАЯ КОЛОНКА (Предпросмотр + Статус + Кнопка Разместить) =================
+        // ================= ПРАВАЯ КОЛОНКА (Предпросмотр + Кнопка размещения) =================
         rightPreviewPanel = Containers.verticalFlow(Sizing.fixed(250), Sizing.fill(100));
         rightPreviewPanel.surface(Surface.flat(0xFF222222));
         rightPreviewPanel.padding(Insets.of(8));
-        rightPreviewPanel.gap(8);
+        rightPreviewPanel.gap(6);
         rightPreviewPanel.horizontalAlignment(HorizontalAlignment.CENTER);
 
         mainBox.child(rightPreviewPanel);
@@ -121,23 +191,100 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
         if (fileListContainer == null) return;
         fileListContainer.clearChildren();
 
-        List<String> imageFiles = getImageFiles();
-        String lowerFilter = searchFilter.toLowerCase();
+        File currentFolder = getCurrentFolder();
 
-        List<String> filtered = new ArrayList<>();
-        for (String f : imageFiles) {
-            if (searchFilter.isEmpty() || f.toLowerCase().contains(lowerFilter)) {
-                filtered.add(f);
+        // 1. Кнопка возврата на уровень выше (..)
+        if (!currentRelPath.isEmpty()) {
+            FlowLayout upRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(22));
+            upRow.surface(Surface.flat(0xFF2D2D35));
+            upRow.padding(Insets.of(3));
+            upRow.verticalAlignment(VerticalAlignment.CENTER);
+            upRow.cursorStyle(CursorStyle.HAND);
+
+            upRow.child(Components.item(new ItemStack(Items.CHEST)));
+
+            LabelComponent upLbl = Components.label(Text.literal("..  (На уровень вверх)"));
+            upLbl.color(Color.ofArgb(0xFFFFAA00));
+            upLbl.sizing(Sizing.fill(100), Sizing.content());
+            upRow.child(upLbl);
+
+            upRow.mouseEnter().subscribe(() -> upRow.surface(Surface.flat(0xFF40404C)));
+            upRow.mouseLeave().subscribe(() -> upRow.surface(Surface.flat(0xFF2D2D35)));
+            upRow.mouseDown().subscribe((mX, mY, button) -> {
+                if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+                    navigateUp();
+                    return true;
+                }
+                return false;
+            });
+            fileListContainer.child(upRow);
+        }
+
+        File[] subFiles = currentFolder.listFiles();
+        if (subFiles == null) subFiles = new File[0];
+        Arrays.sort(subFiles, (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+
+        List<File> directories = new ArrayList<>();
+        List<File> imageFiles = new ArrayList<>();
+
+        for (File f : subFiles) {
+            if (f.isDirectory()) {
+                directories.add(f);
+            } else {
+                String lower = f.getName().toLowerCase();
+                if (lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".webp") || lower.endsWith(".bmp")) {
+                    imageFiles.add(f);
+                }
             }
         }
 
-        if (filtered.isEmpty()) {
-            fileListContainer.child(Components.label(Text.translatable("mogdops-mod.image.no_files")).color(Color.ofArgb(0x88FFFFFF)).margins(Insets.top(10)));
-            return;
+        String lowerFilter = searchFilter.toLowerCase();
+
+        // 2. Список папок
+        for (File dir : directories) {
+            String dirName = dir.getName();
+            if (!searchFilter.isEmpty() && !dirName.toLowerCase().contains(lowerFilter)) {
+                continue;
+            }
+
+            FlowLayout dirRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(22));
+            dirRow.surface(Surface.flat(0xFF252528));
+            dirRow.padding(Insets.of(3));
+            dirRow.verticalAlignment(VerticalAlignment.CENTER);
+            dirRow.cursorStyle(CursorStyle.HAND);
+
+            dirRow.child(Components.item(new ItemStack(Items.BARREL)));
+
+            LabelComponent dirLbl = Components.label(Text.literal("📁 " + dirName));
+            dirLbl.color(Color.ofArgb(0xFF55FFFF));
+            dirLbl.sizing(Sizing.fill(100), Sizing.content());
+            dirRow.child(dirLbl);
+
+            dirRow.mouseEnter().subscribe(() -> dirRow.surface(Surface.flat(0xFF383842)));
+            dirRow.mouseLeave().subscribe(() -> dirRow.surface(Surface.flat(0xFF252528)));
+            dirRow.mouseDown().subscribe((mX, mY, button) -> {
+                if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+                    enterDirectory(dirName);
+                    return true;
+                }
+                return false;
+            });
+
+            fileListContainer.child(dirRow);
         }
 
-        for (String filename : filtered) {
-            boolean isSelected = filename.equals(selectedFilename);
+        // 3. Список изображений
+        int imagesShown = 0;
+        for (File img : imageFiles) {
+            String fileName = img.getName();
+            if (!searchFilter.isEmpty() && !fileName.toLowerCase().contains(lowerFilter)) {
+                continue;
+            }
+            imagesShown++;
+
+            String fullRelativeName = currentRelPath.isEmpty() ? fileName : currentRelPath + "/" + fileName;
+            boolean isSelected = fullRelativeName.equals(selectedFilename);
+
             FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(22));
             row.surface(Surface.flat(isSelected ? 0xFF00AAFF : 0xFF333333));
             row.padding(Insets.of(3));
@@ -146,18 +293,18 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
 
             row.child(Components.item(new ItemStack(Items.PAINTING)));
 
-            LabelComponent nameLbl = Components.label(Text.literal(filename));
+            LabelComponent nameLbl = Components.label(Text.literal(fileName));
             nameLbl.color(Color.ofArgb(isSelected ? 0xFFFFFFFF : 0xFFDDDDDD));
             nameLbl.sizing(Sizing.fill(100), Sizing.content());
             row.child(nameLbl);
 
             row.mouseEnter().subscribe(() -> {
-                if (!filename.equals(selectedFilename)) {
+                if (!fullRelativeName.equals(selectedFilename)) {
                     row.surface(Surface.flat(0xFF555555));
                 }
             });
             row.mouseLeave().subscribe(() -> {
-                if (!filename.equals(selectedFilename)) {
+                if (!fullRelativeName.equals(selectedFilename)) {
                     row.surface(Surface.flat(0xFF333333));
                 } else {
                     row.surface(Surface.flat(0xFF00AAFF));
@@ -165,7 +312,7 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
             });
             row.mouseDown().subscribe((mX, mY, button) -> {
                 if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-                    this.selectedFilename = filename;
+                    this.selectedFilename = fullRelativeName;
                     rebuildFileList();
                     updatePreviewPanel();
                     return true;
@@ -174,6 +321,10 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
             });
 
             fileListContainer.child(row);
+        }
+
+        if (directories.isEmpty() && imagesShown == 0) {
+            fileListContainer.child(Components.label(Text.translatable("mogdops-mod.image.no_files")).color(Color.ofArgb(0x88FFFFFF)).margins(Insets.top(10)));
         }
     }
 
@@ -186,16 +337,16 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
         rightPreviewPanel.child(title);
 
         if (selectedFilename == null || selectedFilename.isEmpty()) {
-            rightPreviewPanel.child(Components.label(Text.literal("Выберите изображение из списка")).color(Color.ofArgb(0x88FFFFFF)).margins(Insets.top(20)));
+            rightPreviewPanel.child(Components.label(Text.literal("Выберите файл из списка")).color(Color.ofArgb(0x88FFFFFF)).margins(Insets.top(15)));
         } else {
             ClientImageTextureManager.ImageTextureInfo info = ClientImageTextureManager.getTexture(selectedFilename);
             if (info != null) {
-                LabelComponent nameLbl = Components.label(Text.literal(selectedFilename + " (" + info.width() + "x" + info.height() + ")"));
+                LabelComponent nameLbl = Components.label(Text.literal(selectedFilename + " (" + info.width() + "x" + info.height() + "px)"));
                 nameLbl.color(Color.ofArgb(0xFFFFAA00));
                 rightPreviewPanel.child(nameLbl);
 
-                int maxBoxW = 200;
-                int maxBoxH = 110;
+                int maxBoxW = 180;
+                int maxBoxH = 85;
                 float aspect = (float) info.width() / (float) info.height();
 
                 int renderW = maxBoxW;
@@ -214,7 +365,7 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
                 texComp.sizing(Sizing.fixed(renderW), Sizing.fixed(renderH));
                 imgBox.child(texComp);
 
-                rightPreviewPanel.child(imgBox.margins(Insets.vertical(4)));
+                rightPreviewPanel.child(imgBox.margins(Insets.vertical(2)));
             } else {
                 rightPreviewPanel.child(Components.label(Text.literal("Ошибка загрузки изображения")).color(Color.ofArgb(0xFFFF5555)));
             }
@@ -227,16 +378,23 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
         statusBox.gap(2);
 
         if (p1 != null && p2 != null) {
-            String strP1 = String.format("Pos1: %.2f, %.2f, %.2f", p1.x, p1.y, p1.z);
-            String strP2 = String.format("Pos2: %.2f, %.2f, %.2f", p2.x, p2.y, p2.z);
-            statusBox.child(Components.label(Text.literal(strP1)).color(Color.ofArgb(0xFF55FF55)));
-            statusBox.child(Components.label(Text.literal(strP2)).color(Color.ofArgb(0xFF55FF55)));
+            double sizeX = Math.abs(p1.x - p2.x);
+            double sizeY = Math.abs(p1.y - p2.y);
+            double sizeZ = Math.abs(p1.z - p2.z);
+
+            double w = (MogDopSModClient.imageSide.getAxis() == Direction.Axis.X) ? sizeZ : sizeX;
+            double h = (MogDopSModClient.imageSide.getAxis() == Direction.Axis.Y) ? sizeZ : sizeY;
+            int pxW = (int) Math.round(w * 16.0);
+            int pxH = (int) Math.round(h * 16.0);
+
+            statusBox.child(Components.label(Text.literal(String.format(Locale.ROOT, "Размер: %.2fx%.2f бл. (%dx%d px)", w, h, pxW, pxH))).color(Color.ofArgb(0xFF55FFFF)));
+            statusBox.child(Components.label(Text.literal("Грань: " + MogDopSModClient.imageSide.asString().toUpperCase())).color(Color.ofArgb(0xFFFFAA00)));
         } else {
             statusBox.child(Components.label(Text.translatable("mogdops-mod.image.no_points_error")).color(Color.ofArgb(0xFFFF5555)));
         }
         rightPreviewPanel.child(statusBox);
 
-        FlowLayout placeBtn = createFlatButton(200, 24, Text.translatable("mogdops-mod.image.btn_place"), () -> {
+        FlowLayout placeBtn = createFlatButton(200, 22, Text.translatable("mogdops-mod.image.btn_place"), () -> {
             if (selectedFilename != null && p1 != null && p2 != null) {
                 ClientPlayNetworking.send(new SpawnImagePayload(
                         selectedFilename,
@@ -257,20 +415,6 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
             placeBtn.surface(Surface.flat(0xFF00AA00));
         }
         rightPreviewPanel.child(placeBtn.margins(Insets.top(4)));
-    }
-
-    private List<String> getImageFiles() {
-        List<String> list = new ArrayList<>();
-        File folder = FabricLoader.getInstance().getConfigDir().resolve("pics").toFile();
-        if (!folder.exists()) folder.mkdirs();
-        File[] files = folder.listFiles((dir, name) -> {
-            String lower = name.toLowerCase();
-            return lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".webp") || lower.endsWith(".bmp");
-        });
-        if (files != null) {
-            for (File f : files) list.add(f.getName());
-        }
-        return list;
     }
 
     private FlowLayout createFlatButton(int width, int height, Text text, Runnable onClick) {

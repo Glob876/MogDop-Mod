@@ -37,9 +37,10 @@ public class ImageDisplayEntity extends Entity {
         this.dataTracker.set(COORDS, String.format(Locale.ROOT, "%.4f;%.4f;%.4f;%.4f;%.4f;%.4f", pos1.x, pos1.y, pos1.z, pos2.x, pos2.y, pos2.z));
         this.dataTracker.set(FACING, facing.getId());
 
-        double midX = (pos1.x + pos2.x) / 2.0;
-        double midY = (pos1.y + pos2.y) / 2.0;
-        double midZ = (pos1.z + pos2.z) / 2.0;
+        // Смещаем центр сущности на 1 см наружу в воздух, чтобы координаты хитбокса не были замурованы в блоке
+        double midX = (pos1.x + pos2.x) / 2.0 + facing.getOffsetX() * 0.01;
+        double midY = (pos1.y + pos2.y) / 2.0 + facing.getOffsetY() * 0.01;
+        double midZ = (pos1.z + pos2.z) / 2.0 + facing.getOffsetZ() * 0.01;
         this.setPos(midX, midY, midZ);
 
         updateBoundingBox();
@@ -48,12 +49,12 @@ public class ImageDisplayEntity extends Entity {
     private void updateBoundingBox() {
         Vec3d p1 = getPos1();
         Vec3d p2 = getPos2();
-        double minX = Math.min(p1.x, p2.x) - 0.1;
-        double maxX = Math.max(p1.x, p2.x) + 0.1;
-        double minY = Math.min(p1.y, p2.y) - 0.1;
-        double maxY = Math.max(p1.y, p2.y) + 0.1;
-        double minZ = Math.min(p1.z, p2.z) - 0.1;
-        double maxZ = Math.max(p1.z, p2.z) + 0.1;
+        double minX = Math.min(p1.x, p2.x) - 0.05;
+        double maxX = Math.max(p1.x, p2.x) + 0.05;
+        double minY = Math.min(p1.y, p2.y) - 0.05;
+        double maxY = Math.max(p1.y, p2.y) + 0.05;
+        double minZ = Math.min(p1.z, p2.z) - 0.05;
+        double maxZ = Math.max(p1.z, p2.z) + 0.05;
         this.setBoundingBox(new Box(minX, minY, minZ, maxX, maxY, maxZ));
     }
 

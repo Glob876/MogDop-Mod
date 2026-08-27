@@ -5,10 +5,12 @@ import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import org.joml.Matrix4f;
@@ -40,6 +42,13 @@ public class ImageDisplayEntityRenderer extends EntityRenderer<ImageDisplayEntit
         Vec3d rel1 = p1.subtract(entityPos);
         Vec3d rel2 = p2.subtract(entityPos);
 
+        // Рассчитываем освещение из блока воздуха перед картинкой, чтобы она не была темной
+        BlockPos airPos = BlockPos.ofFloored(entityPos.add(side.getOffsetX() * 0.6, side.getOffsetY() * 0.6, side.getOffsetZ() * 0.6));
+        int renderLight = WorldRenderer.getLightmapCoordinates(entity.getWorld(), airPos);
+        if (renderLight == 0) {
+            renderLight = light;
+        }
+
         matrices.push();
 
         double minX = Math.min(rel1.x, rel2.x);
@@ -49,7 +58,8 @@ public class ImageDisplayEntityRenderer extends EntityRenderer<ImageDisplayEntit
         double minZ = Math.min(rel1.z, rel2.z);
         double maxZ = Math.max(rel1.z, rel2.z);
 
-        double offset = 0.005;
+        // Смещение на долю миллиметра (0.004 блока) от грани блока
+        double offset = 0.004;
         double ox = side.getOffsetX() * offset;
         double oy = side.getOffsetY() * offset;
         double oz = side.getOffsetZ() * offset;
@@ -66,40 +76,46 @@ public class ImageDisplayEntityRenderer extends EntityRenderer<ImageDisplayEntit
 
         switch (side) {
             case UP -> {
-                c0 = new Vec3d(minX, rel1.y + oy, minZ);
-                c1 = new Vec3d(maxX, rel1.y + oy, minZ);
-                c2 = new Vec3d(maxX, rel1.y + oy, maxZ);
-                c3 = new Vec3d(minX, rel1.y + oy, maxZ);
+                double y = rel1.y + oy;
+                c0 = new Vec3d(minX, y, minZ);
+                c1 = new Vec3d(maxX, y, minZ);
+                c2 = new Vec3d(maxX, y, maxZ);
+                c3 = new Vec3d(minX, y, maxZ);
             }
             case DOWN -> {
-                c0 = new Vec3d(minX, rel1.y + oy, maxZ);
-                c1 = new Vec3d(maxX, rel1.y + oy, maxZ);
-                c2 = new Vec3d(maxX, rel1.y + oy, minZ);
-                c3 = new Vec3d(minX, rel1.y + oy, minZ);
+                double y = rel1.y + oy;
+                c0 = new Vec3d(minX, y, maxZ);
+                c1 = new Vec3d(maxX, y, maxZ);
+                c2 = new Vec3d(maxX, y, minZ);
+                c3 = new Vec3d(minX, y, minZ);
             }
             case NORTH -> {
-                c0 = new Vec3d(maxX + ox, maxY, rel1.z + oz);
-                c1 = new Vec3d(minX + ox, maxY, rel1.z + oz);
-                c2 = new Vec3d(minX + ox, minY, rel1.z + oz);
-                c3 = new Vec3d(maxX + ox, minY, rel1.z + oz);
+                double z = rel1.z + oz;
+                c0 = new Vec3d(maxX, maxY, z);
+                c1 = new Vec3d(minX, maxY, z);
+                c2 = new Vec3d(minX, minY, z);
+                c3 = new Vec3d(maxX, minY, z);
             }
             case SOUTH -> {
-                c0 = new Vec3d(minX + ox, maxY, rel1.z + oz);
-                c1 = new Vec3d(maxX + ox, maxY, rel1.z + oz);
-                c2 = new Vec3d(maxX + ox, minY, rel1.z + oz);
-                c3 = new Vec3d(minX + ox, minY, rel1.z + oz);
+                double z = rel1.z + oz;
+                c0 = new Vec3d(minX, maxY, z);
+                c1 = new Vec3d(maxX, maxY, z);
+                c2 = new Vec3d(maxX, minY, z);
+                c3 = new Vec3d(minX, minY, z);
             }
             case WEST -> {
-                c0 = new Vec3d(rel1.x + ox, maxY, minZ + oz);
-                c1 = new Vec3d(rel1.x + ox, maxY, maxZ + oz);
-                c2 = new Vec3d(rel1.x + ox, minY, maxZ + oz);
-                c3 = new Vec3d(rel1.x + ox, minY, minZ + oz);
+                double x = rel1.x + ox;
+                c0 = new Vec3d(x, maxY, minZ);
+                c1 = new Vec3d(x, maxY, maxZ);
+                c2 = new Vec3d(x, minY, maxZ);
+                c3 = new Vec3d(x, minY, minZ);
             }
             case EAST -> {
-                c0 = new Vec3d(rel1.x + ox, maxY, maxZ + oz);
-                c1 = new Vec3d(rel1.x + ox, maxY, minZ + oz);
-                c2 = new Vec3d(rel1.x + ox, minY, minZ + oz);
-                c3 = new Vec3d(rel1.x + ox, minY, maxZ + oz);
+                double x = rel1.x + ox;
+                c0 = new Vec3d(x, maxY, maxZ);
+                c1 = new Vec3d(x, maxY, minZ);
+                c2 = new Vec3d(x, minY, minZ);
+                c3 = new Vec3d(x, minY, maxZ);
             }
             default -> {
                 c0 = new Vec3d(minX, maxY, minZ);
@@ -109,21 +125,21 @@ public class ImageDisplayEntityRenderer extends EntityRenderer<ImageDisplayEntit
             }
         }
 
-        // Передняя грань
-        drawVertex(buffer, mat, c0, 0f, 0f, nx, ny, nz, light);
-        drawVertex(buffer, mat, c1, 1f, 0f, nx, ny, nz, light);
-        drawVertex(buffer, mat, c2, 1f, 1f, nx, ny, nz, light);
-        drawVertex(buffer, mat, c3, 0f, 1f, nx, ny, nz, light);
+        // Передняя грань (текстура)
+        drawVertex(buffer, mat, c0, 0f, 0f, nx, ny, nz, renderLight);
+        drawVertex(buffer, mat, c1, 1f, 0f, nx, ny, nz, renderLight);
+        drawVertex(buffer, mat, c2, 1f, 1f, nx, ny, nz, renderLight);
+        drawVertex(buffer, mat, c3, 0f, 1f, nx, ny, nz, renderLight);
 
-        // Задняя грань (для видимости с обратной стороны)
-        drawVertex(buffer, mat, c3, 0f, 1f, -nx, -ny, -nz, light);
-        drawVertex(buffer, mat, c2, 1f, 1f, -nx, -ny, -nz, light);
-        drawVertex(buffer, mat, c1, 1f, 0f, -nx, -ny, -nz, light);
-        drawVertex(buffer, mat, c0, 0f, 0f, -nx, -ny, -nz, light);
+        // Задняя грань
+        drawVertex(buffer, mat, c3, 0f, 1f, -nx, -ny, -nz, renderLight);
+        drawVertex(buffer, mat, c2, 1f, 1f, -nx, -ny, -nz, renderLight);
+        drawVertex(buffer, mat, c1, 1f, 0f, -nx, -ny, -nz, renderLight);
+        drawVertex(buffer, mat, c0, 0f, 0f, -nx, -ny, -nz, renderLight);
 
         matrices.pop();
 
-        super.render(entity, yaw, tickDelta, matrices, vertexConsumers, light);
+        super.render(entity, yaw, tickDelta, matrices, vertexConsumers, renderLight);
     }
 
     private void drawVertex(VertexConsumer buffer, Matrix4f mat, Vec3d pos, float u, float v, float nx, float ny, float nz, int light) {

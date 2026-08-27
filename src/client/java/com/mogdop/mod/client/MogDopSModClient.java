@@ -15,7 +15,6 @@ import com.mogdop.mod.client.gui.SelectionAxeHud;
 import com.mogdop.mod.client.gui.ChatNotificationHud;
 import com.mogdop.mod.client.render.ImageDisplayEntityRenderer;
 import com.mogdop.mod.network.*;
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -45,12 +44,9 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.particle.ParticleTypes;
-import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.TypedActionResult;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
@@ -62,6 +58,7 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalDouble;
 
@@ -79,6 +76,7 @@ public class MogDopSModClient implements ClientModInitializer {
     public static BlockPos pos1 = null;
     public static BlockPos pos2 = null;
 
+    // Пиксельные координаты для режима изображений (16x16 в блоке)
     public static Vec3d imagePos1 = null;
     public static Vec3d imagePos2 = null;
     public static Direction imageSide = Direction.UP;
@@ -90,9 +88,6 @@ public class MogDopSModClient implements ClientModInitializer {
     public static int schematicSizeY = 1;
     public static int schematicSizeZ = 1;
     public static String schematicName = "";
-
-    public static double schemAnimX = 0, schemAnimY = 0, schemAnimZ = 0;
-    public static boolean schemAnimInit = false;
 
     public static void syncSelectionPoints() {
         if (currentSelectionMode == 0) {
@@ -338,6 +333,116 @@ public class MogDopSModClient implements ClientModInitializer {
         }
     }
 
+    public static double snap16(double val) {
+        return Math.round(val * 16.0) / 16.0;
+    }
+
+    public static Vec3d getSnappedPixelPoint(BlockHitResult hitResult) {
+        BlockPos pos = hitResult.getBlockPos();
+        Direction side = hitResult.getSide();
+        Vec3d hit = hitResult.getPos();
+
+        double x = snap16(hit.x);
+        double y = snap16(hit.y);
+        double z = snap16(hit.z);
+
+        switch (side) {
+            case UP -> y = pos.getY() + 1.0;
+            case DOWN -> y = pos.getY();
+            case NORTH -> z = pos.getZ();
+            case SOUTH -> z = pos.getZ() + 1.0;
+            case WEST -> x = pos.getX();
+            case EAST -> x = pos.getX() + 1.0;
+        }
+
+        return new Vec3d(x, y, z);
+    }
+
+    public static Vec3d getSnappedPointOnPlane(BlockHitResult hitResult, Direction planeSide, Vec3d planePoint) {
+        Vec3d hit = hitResult.getPos();
+        double x = snap16(hit.x);
+        double y = snap16(hit.y);
+        double z = snap16(hit.z);
+
+        switch (planeSide.getAxis()) {
+            case X -> x = planePoint.x;
+            case Y -> y = planePoint.y;
+            case Z -> z = planePoint.z;
+        }
+
+        return new Vec3d(x, y, z);
+    }
+
+    private static Vec3d[] calculatePlanarCorners(Vec3d p1, Vec3d p2, Direction side) {
+        double minX = Math.min(p1.x, p2.x); double maxX = Math.max(p1.x, p2.x);
+        double minY = Math.min(p1.y, p2.y); double maxY = Math.max(p1.y, p2.y);
+        double minZ = Math.min(p1.z, p2.z); double maxZ = Math.max(p1.z, p2.z);
+
+        double off = 0.004;
+        double ox = side.getOffsetX() * off;
+        double oy = side.getOffsetY() * off;
+        double oz = side.getOffsetZ() * off;
+
+        switch (side) {
+            case UP, DOWN -> {
+                double y = p1.y + oy;
+                return new Vec3d[]{
+                        new Vec3d(minX, y, minZ),
+                        new Vec3d(maxX, y, minZ),
+                        new Vec3d(maxX, y, maxZ),
+                        new Vec3d(minX, y, maxZ)
+                };
+            }
+            case NORTH, SOUTH -> {
+                double z = p1.z + oz;
+                return new Vec3d[]{
+                        new Vec3d(minX, minY, z),
+                        new Vec3d(maxX, minY, z),
+                        new Vec3d(maxX, maxY, z),
+                        new Vec3d(minX, maxY, z)
+                };
+            }
+            case WEST, EAST -> {
+                double x = p1.x + ox;
+                return new Vec3d[]{
+                        new Vec3d(x, minY, minZ),
+                        new Vec3d(x, minY, maxZ),
+                        new Vec3d(x, maxY, maxZ),
+                        new Vec3d(x, maxY, minZ)
+                };
+            }
+            default -> { return null; }
+        }
+    }
+
+    private static void drawPlanarQuadFaces(MatrixStack matrices, VertexConsumer quadsConsumer, Vec3d c0, Vec3d c1, Vec3d c2, Vec3d c3, float r, float g, float b, float a) {
+        MatrixStack.Entry entry = matrices.peek();
+        quadsConsumer.vertex(entry, (float)c0.x, (float)c0.y, (float)c0.z).color(r, g, b, a);
+        quadsConsumer.vertex(entry, (float)c1.x, (float)c1.y, (float)c1.z).color(r, g, b, a);
+        quadsConsumer.vertex(entry, (float)c2.x, (float)c2.y, (float)c2.z).color(r, g, b, a);
+        quadsConsumer.vertex(entry, (float)c3.x, (float)c3.y, (float)c3.z).color(r, g, b, a);
+
+        quadsConsumer.vertex(entry, (float)c3.x, (float)c3.y, (float)c3.z).color(r, g, b, a);
+        quadsConsumer.vertex(entry, (float)c2.x, (float)c2.y, (float)c2.z).color(r, g, b, a);
+        quadsConsumer.vertex(entry, (float)c1.x, (float)c1.y, (float)c1.z).color(r, g, b, a);
+        quadsConsumer.vertex(entry, (float)c0.x, (float)c0.y, (float)c0.z).color(r, g, b, a);
+    }
+
+    private static void drawPlanarQuadOutline(MatrixStack matrices, VertexConsumer linesConsumer, Vec3d c0, Vec3d c1, Vec3d c2, Vec3d c3, float r, float g, float b, float a) {
+        MatrixStack.Entry entry = matrices.peek();
+        linesConsumer.vertex(entry, (float)c0.x, (float)c0.y, (float)c0.z).color(r, g, b, a).normal(0, 1, 0);
+        linesConsumer.vertex(entry, (float)c1.x, (float)c1.y, (float)c1.z).color(r, g, b, a).normal(0, 1, 0);
+
+        linesConsumer.vertex(entry, (float)c1.x, (float)c1.y, (float)c1.z).color(r, g, b, a).normal(0, 1, 0);
+        linesConsumer.vertex(entry, (float)c2.x, (float)c2.y, (float)c2.z).color(r, g, b, a).normal(0, 1, 0);
+
+        linesConsumer.vertex(entry, (float)c2.x, (float)c2.y, (float)c2.z).color(r, g, b, a).normal(0, 1, 0);
+        linesConsumer.vertex(entry, (float)c3.x, (float)c3.y, (float)c3.z).color(r, g, b, a).normal(0, 1, 0);
+
+        linesConsumer.vertex(entry, (float)c3.x, (float)c3.y, (float)c3.z).color(r, g, b, a).normal(0, 1, 0);
+        linesConsumer.vertex(entry, (float)c0.x, (float)c0.y, (float)c0.z).color(r, g, b, a).normal(0, 1, 0);
+    }
+
     @Override
     public void onInitializeClient() {
         PlayerBlockHistoryManager.load();
@@ -412,16 +517,15 @@ public class MogDopSModClient implements ClientModInitializer {
             schematicSizeZ = payload.sizeZ();
             schematicName = payload.filename();
             schematicPreviewActive = true;
-            schemAnimInit = false;
         }));
 
-        // 5. Обработка действий Топора
+        // 5. Обработка ЛКМ (Возвращаем ActionResult.FAIL, чтобы предотвратить ломание блока)
         AttackBlockCallback.EVENT.register((player, world, hand, pos, direction) -> {
             if (!world.isClient() || hand != Hand.MAIN_HAND) return ActionResult.PASS;
             if (!isSelectionAxe(player.getMainHandStack())) return ActionResult.PASS;
 
             switch (currentToolMode) {
-                case 0 -> { // Режим Выделения
+                case 0 -> {
                     if (currentSelectionMode == 0) {
                         pos1 = pos;
                         syncSelectionPoints();
@@ -430,33 +534,39 @@ public class MogDopSModClient implements ClientModInitializer {
                         selectionPoints.add(pos);
                         player.sendMessage(Text.translatable("mogdops-mod.selection.point_added", selectionPoints.size(), pos.toShortString()), true);
                     }
-                    return ActionResult.SUCCESS;
+                    return ActionResult.FAIL;
                 }
-                case 1 -> { // Уничтожитель
+                case 1 -> {
                     ClientPlayNetworking.send(new ToolActionPayload("REMOVER", pos, 0F, false, CONFIG.toolRemoverRadius()));
-                    return ActionResult.SUCCESS;
+                    return ActionResult.FAIL;
                 }
-                case 2 -> { // Взрыв
+                case 2 -> {
                     ClientPlayNetworking.send(new ToolActionPayload("EXPLOSION", pos, CONFIG.toolExplosionPower(), CONFIG.toolExplosionFire(), 1));
-                    return ActionResult.SUCCESS;
+                    return ActionResult.FAIL;
                 }
-                case 3 -> { // Телепортация
+                case 3 -> {
                     ClientPlayNetworking.send(new ToolActionPayload("TELEPORT", pos, 0F, false, 1));
-                    return ActionResult.SUCCESS;
+                    return ActionResult.FAIL;
                 }
-                case 4 -> { // Спавн
+                case 4 -> {
                     ClientPlayNetworking.send(new SpawnEntityPayload(activeSpawnId, activeSpawnCustomName, activeSpawnNameVisible, activeSpawnNoGravity, activeSpawnSilent, activeSpawnGlowing, activeSpawnIsBaby, activeSpawnSlimeSize, activeSpawnFireTicks));
-                    return ActionResult.SUCCESS;
+                    return ActionResult.FAIL;
                 }
-                case 6 -> { // Изображения: Pos1
-                    imagePos1 = new Vec3d(pos.getX(), pos.getY(), pos.getZ());
-                    player.sendMessage(Text.literal("§a[Изображения] Точка 1: " + pos.toShortString()), true);
-                    return ActionResult.SUCCESS;
+                case 6 -> { // Изображения: Установка Точки 1 БЕЗ поломки блока
+                    MinecraftClient client = MinecraftClient.getInstance();
+                    if (client.crosshairTarget instanceof BlockHitResult hitResult) {
+                        imagePos1 = getSnappedPixelPoint(hitResult);
+                        imageSide = hitResult.getSide();
+                        imagePos2 = null;
+                        player.sendMessage(Text.literal(String.format(Locale.ROOT, "§a[Изображение] Точка 1: (%.2f, %.2f, %.2f) на грани %s", imagePos1.x, imagePos1.y, imagePos1.z, imageSide.asString())), true);
+                    }
+                    return ActionResult.FAIL;
                 }
             }
             return ActionResult.PASS;
         });
 
+        // 6. Обработка ПКМ
         UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
             if (!world.isClient() || hand != Hand.MAIN_HAND) return ActionResult.PASS;
             if (!isSelectionAxe(player.getMainHandStack())) return ActionResult.PASS;
@@ -477,10 +587,14 @@ public class MogDopSModClient implements ClientModInitializer {
                     }
                     return ActionResult.SUCCESS;
                 }
-                case 6 -> {
-                    imagePos2 = new Vec3d(pos.getX() + 1.0, pos.getY() + 1.0, pos.getZ() + 1.0);
-                    imageSide = hitResult.getSide();
-                    player.sendMessage(Text.literal("§b[Изображения] Точка 2: " + pos.toShortString()), true);
+                case 6 -> { // Изображения: Установка Точки 2 и открытие меню
+                    if (imagePos1 == null) {
+                        player.sendMessage(Text.literal("§c[Изображение] Сначала установите первую точку (ЛКМ)!"), true);
+                        return ActionResult.SUCCESS;
+                    }
+
+                    imagePos2 = getSnappedPointOnPlane(hitResult, imageSide, imagePos1);
+                    player.sendMessage(Text.literal(String.format(Locale.ROOT, "§b[Изображение] Точка 2: (%.2f, %.2f, %.2f)", imagePos2.x, imagePos2.y, imagePos2.z)), true);
                     MinecraftClient.getInstance().setScreen(new ImageSelectorScreen());
                     return ActionResult.SUCCESS;
                 }
@@ -495,15 +609,12 @@ public class MogDopSModClient implements ClientModInitializer {
             if (currentToolMode == 5) {
                 MinecraftClient.getInstance().setScreen(new SchematicScreen());
                 return TypedActionResult.success(player.getStackInHand(hand));
-            } else if (currentToolMode == 6) {
-                MinecraftClient.getInstance().setScreen(new ImageSelectorScreen());
-                return TypedActionResult.success(player.getStackInHand(hand));
             }
 
             return TypedActionResult.pass(player.getStackInHand(hand));
         });
 
-        // 6. Тики клиента (Горячие клавиши)
+        // 7. Тики клиента (Горячие клавиши)
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             notificationManager.update();
 
@@ -528,7 +639,7 @@ public class MogDopSModClient implements ClientModInitializer {
             }
         });
 
-        // 7. Проверка приветственного экрана при входе
+        // 8. Проверка приветственного экрана при входе
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             if (!CONFIG.hasSeenWelcome()) {
                 client.execute(() -> client.setScreen(new WelcomeScreen()));
@@ -537,7 +648,7 @@ public class MogDopSModClient implements ClientModInitializer {
             }
         });
 
-        // 8. 3D Рендеринг выделения в мире
+        // 9. 3D Рендеринг выделения в мире
         WorldRenderEvents.AFTER_TRANSLUCENT.register(context -> {
             MinecraftClient client = MinecraftClient.getInstance();
             if (client.player == null || client.world == null) return;
@@ -551,8 +662,32 @@ public class MogDopSModClient implements ClientModInitializer {
 
             float[] col = getSelectionColor();
 
-            // 8.1 Режим кубоида
-            if (currentSelectionMode == 0 && pos1 != null && pos2 != null) {
+            // 9.1 Режим изображений: плоское 2D выделение по пикселям со смещением от блока
+            if (currentToolMode == 6 && imagePos1 != null) {
+                Vec3d p2 = imagePos2;
+                if (p2 == null && client.crosshairTarget instanceof BlockHitResult hitResult) {
+                    p2 = getSnappedPointOnPlane(hitResult, imageSide, imagePos1);
+                }
+
+                if (p2 != null) {
+                    matrices.push();
+                    matrices.translate(-camPos.x, -camPos.y, -camPos.z);
+
+                    Vec3d[] corners = calculatePlanarCorners(imagePos1, p2, imageSide);
+                    if (corners != null) {
+                        VertexConsumer quads = consumers.getBuffer(SELECTION_QUADS);
+                        drawPlanarQuadFaces(matrices, quads, corners[0], corners[1], corners[2], corners[3], 0.0F, 0.8F, 1.0F, 0.35F);
+
+                        VertexConsumer lines = consumers.getBuffer(SELECTION_LINES);
+                        drawPlanarQuadOutline(matrices, lines, corners[0], corners[1], corners[2], corners[3], 0.0F, 0.8F, 1.0F, 1.0F);
+                    }
+
+                    matrices.pop();
+                }
+            }
+
+            // 9.2 Режим кубоида WorldEdit
+            if (currentToolMode == 0 && currentSelectionMode == 0 && pos1 != null && pos2 != null) {
                 double minX = Math.min(pos1.getX(), pos2.getX());
                 double minY = Math.min(pos1.getY(), pos2.getY());
                 double minZ = Math.min(pos1.getZ(), pos2.getZ());
@@ -596,8 +731,8 @@ public class MogDopSModClient implements ClientModInitializer {
                 matrices.pop();
             }
 
-            // 8.2 Режимы Poly / Convex
-            if (currentSelectionMode != 0 && !selectionPoints.isEmpty()) {
+            // 9.3 Режимы Poly / Convex
+            if (currentToolMode == 0 && currentSelectionMode != 0 && !selectionPoints.isEmpty()) {
                 matrices.push();
                 matrices.translate(-camPos.x, -camPos.y, -camPos.z);
 
@@ -615,7 +750,7 @@ public class MogDopSModClient implements ClientModInitializer {
                 matrices.pop();
             }
 
-            // 8.3 3D Предпросмотр Схематики
+            // 9.4 3D Предпросмотр Схематики
             if (schematicPreviewActive && client.crosshairTarget != null && client.crosshairTarget.getType() == HitResult.Type.BLOCK) {
                 BlockPos target = ((BlockHitResult) client.crosshairTarget).getBlockPos().offset(((BlockHitResult) client.crosshairTarget).getSide());
                 matrices.push();

@@ -6,6 +6,10 @@ import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.util.Identifier;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -40,8 +44,34 @@ public class ClientImageTextureManager {
         File file = new File(folder, fileName);
         if (!file.exists()) return null;
 
+        NativeImage image = null;
+
+        // 1. Попытка прямой быстрой загрузки через нативный STB загрузчик Minecraft
         try (InputStream in = new FileInputStream(file)) {
-            NativeImage image = NativeImage.read(in);
+            image = NativeImage.read(in);
+        } catch (Exception ignored) {
+            // STB не поддерживает Progressive JPEG и некоторые варианты JPG
+        }
+
+        // 2. Универсальный декодер через ImageIO (поддерживает любые Progressive JPEG, JPG, BMP и т.д.)
+        if (image == null) {
+            try {
+                BufferedImage bImg = ImageIO.read(file);
+                if (bImg != null) {
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    ImageIO.write(bImg, "png", baos);
+                    image = NativeImage.read(new ByteArrayInputStream(baos.toByteArray()));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (image == null) {
+            return null;
+        }
+
+        try {
             int width = image.getWidth();
             int height = image.getHeight();
 
