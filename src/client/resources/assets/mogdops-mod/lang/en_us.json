@@ -11,6 +11,7 @@
   "key.mogdops-mod.open_schematics": "Schematics & Clipboard (K)",
   "key.mogdops-mod.schematic": "Schematics & Clipboard (K)",
 
+  "item.mogdops-mod.staff": "Creative Staff",
   "block.mogdops-mod.mob_spawner_slab": "Mob Spawner Slab",
   "item.mogdops-mod.mob_spawner_slab": "Mob Spawner Slab",
   "entity.mogdops-mod.image_display": "Image Display",
@@ -44,13 +45,14 @@
   "mogdops-mod.tab.mobs": "👾 Mobs",
   "mogdops-mod.tab.items": "📦 Items",
   "mogdops-mod.tab.utilities": "⚡ Utilities",
+  "mogdops-mod.tab.settings": "⚙ Settings",
 
   "mogdops-mod.main_tab.subtitle": "Sandbox Toolkit & WorldEdit Controls",
   "mogdops-mod.main_tab.info1": "Garry's Mod style sandbox toolkit & official WorldEdit API integration.",
   "mogdops-mod.main_tab.info2": "Hold H to open the 360-degree radial WorldEdit quick action bar.",
   "mogdops-mod.main_tab.info3": "Press J to open the WorldEdit Selection Mode wheel (Cuboid, Poly 2D, Convex 3D).",
-  "mogdops-mod.main_tab.info4": "Selection Axe: Left-Click sets pos1; Right-Click sets pos2 / adds polygon vertices.",
-  "mogdops-mod.main_tab.info5": "Hold Alt + Scroll wheel to expand selection faces; Hold Ctrl + Scroll to switch Multi-Tool modes.",
+  "mogdops-mod.main_tab.info4": "Creative Staff: Left-Click sets pos1; Right-Click sets pos2 / adds polygon vertices.",
+  "mogdops-mod.main_tab.info5": "Hold Alt + Scroll wheel to expand selection faces; Hold Ctrl + Scroll to switch Staff modes.",
   "mogdops-mod.main_tab.info6": "Press K to open the Schematics & Clipboard Manager menu.",
 
   "mogdops-mod.image.title": "★ Image Selection & Placement ★",
@@ -95,11 +97,11 @@
   "mogdops-mod.welcome.page1.text2": "It combines building tools, entity editors, custom item generators, and world controls into clean UI screens.",
   "mogdops-mod.welcome.page1.text3": "All building actions support full Undo and Redo history.",
 
-  "mogdops-mod.welcome.page2.title": "Multi-Tool & Selection Axe",
+  "mogdops-mod.welcome.page2.title": "Creative Staff & Multi-Tool",
   "mogdops-mod.welcome.page2.category": "Tools",
   "mogdops-mod.welcome.page2.text1": "Left-Click sets Pos 1; Right-Click sets Pos 2 or adds polygon vertex points.",
   "mogdops-mod.welcome.page2.text2": "Hold Alt and scroll mouse wheel to smoothly expand or contract the targeted selection face.",
-  "mogdops-mod.welcome.page2.text3": "Hold Ctrl and scroll mouse wheel to switch Multi-Tool modes (Selection, Remover, Explosion, Teleport, Spawner, Schematics, Images).",
+  "mogdops-mod.welcome.page2.text3": "Hold Ctrl and scroll mouse wheel to switch Staff modes (Selection, Remover, Explosion, Teleport, Spawner, Schematics, Images).",
   "mogdops-mod.welcome.page2.text4": "Visual 3D wireframe outline renders dynamically in world space with custom config colors.",
 
   "mogdops-mod.welcome.page3.title": "Radial Quick Action Bar (Key H)",
@@ -119,7 +121,7 @@
   "mogdops-mod.welcome.page5.category": "Entities",
   "mogdops-mod.welcome.page5.text1": "Press ~ (Tilde) to open the Spawner GUI with live 3D entity models.",
   "mogdops-mod.welcome.page5.text2": "Mob Editor: Customize names, visibility, gravity, silence, glowing, baby status, slime size, and fire ticks.",
-  "mogdops-mod.welcome.page5.text3": "Spawn customized entities instantly or export them into the Multi-Tool Spawner mode.",
+  "mogdops-mod.welcome.page5.text3": "Spawn customized entities instantly or use the Staff Spawner mode.",
 
   "mogdops-mod.welcome.page6.title": "Item Creator & Player Cheats",
   "mogdops-mod.welcome.page6.category": "Utilities",
@@ -133,14 +135,14 @@
   "mogdops-mod.welcome.page7.text2": "Configure mob ID, spawn interval (sec), max active limit, spawn radius, and active toggle.",
   "mogdops-mod.welcome.page7.text3": "Type /md settings to adjust UI theme color, opacity, chat hiding, and selection particle settings.",
 
-  "mogdops-mod.error.positions_not_set": "§c[MogDopWE] Error: First set both positions using the selection axe!",
-  "mogdops-mod.tool.mode_changed": "§6[MogDopWE] Mode: §b%s",
+  "mogdops-mod.error.positions_not_set": "§c[MogDopWE] Error: First set both positions using the Creative Staff!",
+  "mogdops-mod.tool.mode_changed": "§6[MogDopWE] Staff Mode: §b%s",
   "mogdops-mod.command.setblock.success": "§a[MogDopWE] Active block changed to: %s (%s)",
   "mogdops-mod.command.setblock.invalid": "§c[MogDopWE] Invalid block ID: %s",
   "mogdops-mod.command.blockset.error": "§c[MogDopWE] Error: Please look at a block!",
   "mogdops-mod.command.set.success": "§a[MogDopWE] Fill area request sent!",
 
-  "mogdops-mod.hud.multitool": "MogDop Multi-Tool",
+  "mogdops-mod.hud.multitool": "Creative Staff",
   "mogdops-mod.hud.mode": "Mode: %s",
   "mogdops-mod.hud.pos1": "Pos 1: %s",
   "mogdops-mod.hud.pos2": "Pos 2: %s",
@@ -154,7 +156,7 @@
   "mogdops-mod.selection.point_removed": "Point #%s removed.",
   "mogdops-mod.selection.cleared": "Selection cleared.",
 
-  "mogdops-mod.tool_selector.title": "★ Multi-Tool Settings ★",
+  "mogdops-mod.tool_selector.title": "★ Creative Staff Settings ★",
   "mogdops-mod.tool_selector.modes": "Modes:",
   "mogdops-mod.tool_selector.properties": "Properties: %s",
   "mogdops-mod.tool_selector.modes.selection": "Selection",
@@ -172,12 +174,12 @@
   "mogdops-mod.tool_selector.reset_positions": "Reset Positions",
   "mogdops-mod.tool_selector.mode.remover.desc": "Removes blocks in your line of sight.",
   "mogdops-mod.tool_selector.radius": "Radius: ",
-  "mogdops-mod.tool_selector.mode.explosion.desc": "Launches explosive blasts.",
+  "mogdops-mod.tool_selector.mode.explosion.desc": "Launches explosive blasts at range.",
   "mogdops-mod.tool_selector.power": "Power: ",
   "mogdops-mod.tool_selector.fire": "Spawn Fire:",
-  "mogdops-mod.tool_selector.mode.teleport.desc": "Teleports you to targeted location.",
+  "mogdops-mod.tool_selector.mode.teleport.desc": "Teleports you instantly to targeted location.",
   "mogdops-mod.tool_selector.mode.teleport.range": "Maximum range: 100 blocks.",
-  "mogdops-mod.tool_selector.mode.spawner.desc": "Spawns targeted entity type.",
+  "mogdops-mod.tool_selector.mode.spawner.desc": "Spawns targeted entity type at range.",
   "mogdops-mod.tool_selector.mode.schematics.desc": "Selecting areas for schematics. Pressing H copies selection into clipboard.",
   "mogdops-mod.tool_selector.mode.image.desc": "Pixel-precise (16x16) planar selection for placing images.",
   "mogdops-mod.tool_selector.selected_mob": "Selected Mob: §b%s",
@@ -192,10 +194,9 @@
   "mogdops-mod.selection_mode.convex.desc": "3D convex hull selection defined by vertex points",
 
   "mogdops-mod.tab.tools": "Tools",
-  "mogdops-mod.tab.worldedit": "Multitool",
+  "mogdops-mod.tab.worldedit": "Staff",
   "mogdops-mod.tab.world": "World",
   "mogdops-mod.tab.player": "Player",
-  "mogdops-mod.tab.settings": "Settings",
   "mogdops-mod.tab.kill_entities": "Kill Entities",
 
   "mogdops-mod.search": "Search:",
@@ -207,7 +208,7 @@
   "mogdops-mod.category.passive": "Passive",
   "mogdops-mod.category.ambient": "Water/Ambient",
 
-  "mogdops-mod.context.spawn_toolgun": "Spawn with Toolgun",
+  "mogdops-mod.context.spawn_toolgun": "Spawn with Staff",
   "mogdops-mod.context.edit_nbt": "Edit Properties",
 
   "mogdops-mod.mob_editor.title": "Mob Editor:",
@@ -220,7 +221,7 @@
   "mogdops-mod.mob_editor.slime_size": "Slime Size:",
   "mogdops-mod.mob_editor.fire_ticks": "On Fire (seconds):",
   "mogdops-mod.mob_editor.spawn_click": "SPAWN (CLICK)",
-  "mogdops-mod.mob_editor.spawn_toolgun_btn": "SPAWN WITH TOOLGUN",
+  "mogdops-mod.mob_editor.spawn_toolgun_btn": "SPAWN WITH STAFF",
 
   "mogdops-mod.item_creator.modifier.custom_name": "Custom Name",
   "mogdops-mod.item_creator.modifier.max_stack": "Max Stack Size",
@@ -241,10 +242,11 @@
   "mogdops-mod.tool.explosion.name": "§eExplosive Pistol",
   "mogdops-mod.tool.teleport.name": "§bTeleporter",
   "mogdops-mod.tools.instruction1": "Hold Ctrl and scroll mouse wheel,",
-  "mogdops-mod.tools.instruction2": "to switch Selection Axe modes!",
+  "mogdops-mod.tools.instruction2": "to switch Creative Staff modes!",
 
-  "mogdops-mod.tool.selection_axe.name": "§6MogDop: Selection Axe",
-  "mogdops-mod.worldedit.get_axe": "Get Selection Axe",
+  "mogdops-mod.tool.selection_axe.name": "§6MogDop: Creative Staff",
+  "mogdops-mod.worldedit.get_staff": "Get Creative Staff",
+  "mogdops-mod.worldedit.get_axe": "Get Creative Staff",
   "mogdops-mod.worldedit.fill": "Fill Selection",
   "mogdops-mod.worldedit.undo": "Undo Command",
   "mogdops-mod.worldedit.redo": "Redo Command",
@@ -360,7 +362,7 @@
   "mogdops-mod.utilities.worldedit_shortcuts": "★ WorldEdit Shortcuts",
   "mogdops-mod.utilities.cheats": "★ World & Player Cheats",
 
-  "mogdops-mod.schematic.loaded_preview": "§a[MogDopWE] Loaded schematic %s (%dx%dx%d). Aim with axe to move!",
+  "mogdops-mod.schematic.loaded_preview": "§a[MogDopWE] Loaded schematic %s (%dx%dx%d). Aim with staff to move!",
   "mogdops-mod.hud.schematic_preview": "Schematic: %s (%dx%dx%d)",
   "mogdops-mod.hud.schematic_instruction": "Click — Place & Paste Schematic"
 }

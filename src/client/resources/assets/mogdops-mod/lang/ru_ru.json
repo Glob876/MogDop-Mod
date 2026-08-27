@@ -11,6 +11,7 @@
   "key.mogdops-mod.open_schematics": "Схематики и буфер обмена (K)",
   "key.mogdops-mod.schematic": "Схематики и буфер обмена (K)",
 
+  "item.mogdops-mod.staff": "Творческий посох",
   "block.mogdops-mod.mob_spawner_slab": "Спавнер-полублок",
   "item.mogdops-mod.mob_spawner_slab": "Спавнер-полублок",
   "entity.mogdops-mod.image_display": "Отображение изображения",
@@ -30,7 +31,7 @@
   "text.config.mogdops-mod.option.enableSelectionAnimation": "Анимация роста выделения",
   "text.config.mogdops-mod.option.enableSelectionAnimation.tooltip": "Плавное расширение 3D-рамки выделения при её изменении.",
   "text.config.mogdops-mod.option.enableSelectionParticles": "Партиклы выделения",
-  "text.config.mogdops-mod.option.enableSelectionParticles.tooltip": "Вспышки частиц при установке позиций топором.",
+  "text.config.mogdops-mod.option.enableSelectionParticles.tooltip": "Вспышки частиц при установке позиций посохом.",
   "text.config.mogdops-mod.option.toolExplosionFire": "Поджигать блоки при взрыве",
   "text.config.mogdops-mod.option.toolExplosionFire.tooltip": "Создавать ли огонь при стрельбе из взрывного пистолета.",
   "text.config.mogdops-mod.option.toolRemoverRadius": "Радиус уничтожителя",
@@ -44,13 +45,14 @@
   "mogdops-mod.tab.mobs": "👾 Мобы",
   "mogdops-mod.tab.items": "📦 Предметы",
   "mogdops-mod.tab.utilities": "⚡ Утилиты",
+  "mogdops-mod.tab.settings": "⚙ Настройки",
 
   "mogdops-mod.main_tab.subtitle": "Песочница & Инструментарий WorldEdit",
   "mogdops-mod.main_tab.info1": "Удобный инструментарий в стиле Garry's Mod и интеграция с WorldEdit.",
   "mogdops-mod.main_tab.info2": "Зажмите H для открытия круговой радиальной панели быстрых действий.",
   "mogdops-mod.main_tab.info3": "Нажмите J для открытия колеса выбора режима выделения (Кубоид, Полигон 2D, Convex 3D).",
-  "mogdops-mod.main_tab.info4": "Топор выделения: ЛКМ ставит Pos 1; ПКМ ставит Pos 2 или новые вершины полигона.",
-  "mogdops-mod.main_tab.info5": "Зажмите Alt + Колесико мыши для расширения граней; Ctrl + Колесико для смены режимов топора.",
+  "mogdops-mod.main_tab.info4": "Творческий посох: ЛКМ ставит Pos 1; ПКМ ставит Pos 2 или новые вершины полигона.",
+  "mogdops-mod.main_tab.info5": "Зажмите Alt + Колесико мыши для расширения граней; Ctrl + Колесико для смены режимов посоха.",
   "mogdops-mod.main_tab.info6": "Нажмите K для открытия меню Схематик и управления буфером обмена.",
 
   "mogdops-mod.image.title": "★ Выбор и Размещение Изображения ★",
@@ -95,7 +97,7 @@
   "mogdops-mod.welcome.page1.text2": "Мод объединяет строительные утилиты, редактор мобов, конструктор предметов и читы управления миром в удобных экранах.",
   "mogdops-mod.welcome.page1.text3": "Все строительные операции выполняются с полной поддержкой истории Отмены и Возврата.",
 
-  "mogdops-mod.welcome.page2.title": "Топор-Мультитул",
+  "mogdops-mod.welcome.page2.title": "Творческий Посох",
   "mogdops-mod.welcome.page2.category": "Инструменты",
   "mogdops-mod.welcome.page2.text1": "ЛКМ устанавливает 1-ю позицию (Pos1); ПКМ устанавливает 2-ю позицию или добавляет вершины многоугольника.",
   "mogdops-mod.welcome.page2.text2": "Зажмите Alt и покрутите колесико мыши, чтобы плавно расширить или сузить выделенную грань в направлении взгляда.",
@@ -119,7 +121,7 @@
   "mogdops-mod.welcome.page5.category": "Сущности",
   "mogdops-mod.welcome.page5.text1": "Нажмите ~ (Тильда) для открытия меню спавнера с живым 3D-предпросмотром мобов.",
   "mogdops-mod.welcome.page5.text2": "Редактор параметров: настраивайте кастомное имя, видимость, гравитацию, беззвучность, свечение, baby-форму, размер слизней и горение.",
-  "mogdops-mod.welcome.page5.text3": "Спавните мобов кликом или экспортируйте настройки в режим Тулгана-Спавнера.",
+  "mogdops-mod.welcome.page5.text3": "Спавните мобов кликом или используйте режим посоха «Спавнер».",
 
   "mogdops-mod.welcome.page6.title": "Конструктор предметов и Читы",
   "mogdops-mod.welcome.page6.category": "Утилиты",
@@ -133,14 +135,14 @@
   "mogdops-mod.welcome.page7.text2": "Настраивайте ID моба, интервал спавна (сек), макс. лимит, радиус спавна и тумблер активности.",
   "mogdops-mod.welcome.page7.text3": "Напишите /md settings для настройки цвета UI темы, прозрачности, скрытия чата и частиц выделения.",
 
-  "mogdops-mod.error.positions_not_set": "§c[MogDopWE] Ошибка: Сначала установите обе позиции топором!",
-  "mogdops-mod.tool.mode_changed": "§6[MogDopWE] Режим: §b%s",
+  "mogdops-mod.error.positions_not_set": "§c[MogDopWE] Ошибка: Сначала установите обе позиции посохом!",
+  "mogdops-mod.tool.mode_changed": "§6[MogDopWE] Режим посоха: §b%s",
   "mogdops-mod.command.setblock.success": "§a[MogDopWE] Активный блок изменен на: %s (%s)",
   "mogdops-mod.command.setblock.invalid": "§c[MogDopWE] Некорректный ID блока: %s",
   "mogdops-mod.command.blockset.error": "§c[MogDopWE] Ошибка: Посмотрите на какой-нибудь блок!",
   "mogdops-mod.command.set.success": "§a[MogDopWE] Запрос на заполнение области отправлен!",
 
-  "mogdops-mod.hud.multitool": "Мультитул MogDop",
+  "mogdops-mod.hud.multitool": "Творческий посох",
   "mogdops-mod.hud.mode": "Режим: %s",
   "mogdops-mod.hud.pos1": "Pos 1: %s",
   "mogdops-mod.hud.pos2": "Pos 2: %s",
@@ -154,7 +156,7 @@
   "mogdops-mod.selection.point_removed": "Точка #%s удалена.",
   "mogdops-mod.selection.cleared": "Выделение очищено.",
 
-  "mogdops-mod.tool_selector.title": "★ Настройка Мультитула ★",
+  "mogdops-mod.tool_selector.title": "★ Настройка Творческого Посоха ★",
   "mogdops-mod.tool_selector.modes": "Режимы:",
   "mogdops-mod.tool_selector.properties": "Свойства: %s",
   "mogdops-mod.tool_selector.modes.selection": "Выделение",
@@ -175,9 +177,9 @@
   "mogdops-mod.tool_selector.mode.explosion.desc": "Создает взрывы на расстоянии.",
   "mogdops-mod.tool_selector.power": "Сила: ",
   "mogdops-mod.tool_selector.fire": "Поджигать блоки:",
-  "mogdops-mod.tool_selector.mode.teleport.desc": "Перемещает в точку фокуса.",
+  "mogdops-mod.tool_selector.mode.teleport.desc": "Мгновенно телепортирует в точку фокуса.",
   "mogdops-mod.tool_selector.mode.teleport.range": "Максимальная дистанция: 100 блоков.",
-  "mogdops-mod.tool_selector.mode.spawner.desc": "Спавнит выбранного моба.",
+  "mogdops-mod.tool_selector.mode.spawner.desc": "Спавнит выбранного моба кликом на расстоянии.",
   "mogdops-mod.tool_selector.mode.schematics.desc": "Выделение областей под схемы. При зажатии H копирует выделение в буфер обмена.",
   "mogdops-mod.tool_selector.mode.image.desc": "Плоское попиксельное выделение (16x16) для размещения изображений.",
   "mogdops-mod.tool_selector.selected_mob": "Выбранный моб: §b%s",
@@ -192,10 +194,9 @@
   "mogdops-mod.selection_mode.convex.desc": "3D-выделение выпуклой оболочки по вершинам",
 
   "mogdops-mod.tab.tools": "Инструменты",
-  "mogdops-mod.tab.worldedit": "Мультитул",
+  "mogdops-mod.tab.worldedit": "Посох",
   "mogdops-mod.tab.world": "Мир",
   "mogdops-mod.tab.player": "Игрок",
-  "mogdops-mod.tab.settings": "Настройки",
   "mogdops-mod.tab.kill_entities": "Удаление мобов",
 
   "mogdops-mod.search": "Поиск:",
@@ -207,7 +208,7 @@
   "mogdops-mod.category.passive": "Мирные",
   "mogdops-mod.category.ambient": "Водные/Прочие",
 
-  "mogdops-mod.context.spawn_toolgun": "Заспавнить тулганом",
+  "mogdops-mod.context.spawn_toolgun": "Заспавнить посохом",
   "mogdops-mod.context.edit_nbt": "Редактировать параметры",
 
   "mogdops-mod.mob_editor.title": "Редактор моба:",
@@ -220,7 +221,7 @@
   "mogdops-mod.mob_editor.slime_size": "Размер слизня:",
   "mogdops-mod.mob_editor.fire_ticks": "Горит (секунд):",
   "mogdops-mod.mob_editor.spawn_click": "СПАВН (КЛИК)",
-  "mogdops-mod.mob_editor.spawn_toolgun_btn": "СПАВН ТУЛГАНОМ",
+  "mogdops-mod.mob_editor.spawn_toolgun_btn": "СПАВН ПОСОХОМ",
 
   "mogdops-mod.item_creator.modifier.custom_name": "Кастомное Имя",
   "mogdops-mod.item_creator.modifier.max_stack": "Макс. Стак",
@@ -241,10 +242,11 @@
   "mogdops-mod.tool.explosion.name": "§eВзрывной пистолет",
   "mogdops-mod.tool.teleport.name": "§bТелепортер",
   "mogdops-mod.tools.instruction1": "Зажмите Ctrl и покрутите колесико мыши,",
-  "mogdops-mod.tools.instruction2": "чтобы переключать режимы Топора-Мультитула!",
+  "mogdops-mod.tools.instruction2": "чтобы переключать режимы Творческого Посоха!",
 
-  "mogdops-mod.tool.selection_axe.name": "§6MogDop: Топор Выделения",
-  "mogdops-mod.worldedit.get_axe": "Получить Топор",
+  "mogdops-mod.tool.selection_axe.name": "§6MogDop: Творческий Посох",
+  "mogdops-mod.worldedit.get_staff": "Получить Посох",
+  "mogdops-mod.worldedit.get_axe": "Получить Посох",
   "mogdops-mod.worldedit.fill": "Заполнить область",
   "mogdops-mod.worldedit.undo": "Отменить (Undo)",
   "mogdops-mod.worldedit.redo": "Вернуть (Redo)",
@@ -360,7 +362,7 @@
   "mogdops-mod.utilities.worldedit_shortcuts": "★ Быстрые команды WorldEdit",
   "mogdops-mod.utilities.cheats": "★ Читы Мира и Игрока",
 
-  "mogdops-mod.schematic.loaded_preview": "§a[MogDopWE] Загружена схема %s (%dx%dx%d). Наведитесь топором для перемещения!",
+  "mogdops-mod.schematic.loaded_preview": "§a[MogDopWE] Загружена схема %s (%dx%dx%d). Наведитесь посохом для перемещения!",
   "mogdops-mod.hud.schematic_preview": "Схема: %s (%dx%dx%d)",
   "mogdops-mod.hud.schematic_instruction": "Клик — Установить и Вставить"
 }
