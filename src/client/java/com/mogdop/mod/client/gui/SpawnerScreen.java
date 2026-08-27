@@ -1,9 +1,9 @@
 package com.mogdop.mod.client.gui;
 
-import com.mogdop.mod.MogDopSMod;
 import com.mogdop.mod.client.MogDopSModClient;
 import com.mogdop.mod.network.*;
 import com.mojang.blaze3d.systems.RenderSystem;
+import io.wispforest.owo.ui.base.BaseComponent;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.CheckboxComponent;
 import io.wispforest.owo.ui.component.Components;
@@ -18,8 +18,6 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.UnbreakableComponent;
-import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnGroup;
@@ -29,29 +27,26 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKeys;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.Util;
 import net.minecraft.util.math.Box;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 
 public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
 
     public static float uiOpacity = 0.95F;
-    public static int accentColor = 0xFF1E1E1E;
     public static boolean vanillaSkin = false;
 
     private static final Identifier LOGO_TEXTURE = Identifier.of("mogdops-mod", "icon.png");
 
     private FlowLayout root;
-    private FlowLayout tabsBar;
+    private FlowLayout tabsSidebar;
     private FlowLayout tabContentWrapper;
 
     private final List<TabModule> tabs = new ArrayList<>();
@@ -59,9 +54,6 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
 
     private final List<EntityType<?>> allSpawnableEntities = new ArrayList<>();
     private final List<Entity> nearbyEntities = new ArrayList<>();
-
-    private final List<FlowLayout> activeCards = new ArrayList<>();
-    private final List<Component> activeIcons = new ArrayList<>();
 
     private boolean showMisc = false;
     private int categoryIndex = 0;
@@ -73,8 +65,6 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
             "mogdops-mod.category.ambient"
     };
 
-    private int maxItemsPerRow = 6;
-    private boolean stackedMode = false;
     private long lastSpawnTime = 0;
 
     public SpawnerScreen() {
@@ -83,6 +73,124 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
         tabs.add(new ItemGiverTab());
         tabs.add(new UtilitiesTab());
         currentTabModule = tabs.get(0);
+    }
+
+    // Компонент изображения с режимом заполнения Cover (без искажения и дублирования)
+    public static class CoverImageComponent extends BaseComponent {
+        private final Identifier texture;
+        private final int imageWidth;
+        private final int imageHeight;
+
+        public CoverImageComponent(Identifier texture, int imageWidth, int imageHeight) {
+            this.texture = texture;
+            this.imageWidth = imageWidth;
+            this.imageHeight = imageHeight;
+        }
+
+        @Override
+        public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
+            if (this.width <= 0 || this.height <= 0) return;
+
+            // Вычисляем масштаб для полного заполнения контейнера
+            float scale = Math.max((float) this.width / this.imageWidth, (float) this.height / this.imageHeight);
+            int drawW = Math.round(this.imageWidth * scale);
+            int drawH = Math.round(this.imageHeight * scale);
+            int drawX = this.x + (this.width - drawW) / 2;
+            int drawY = this.y + (this.height - drawH) / 2;
+
+            context.enableScissor(this.x, this.y, this.width, this.height);
+
+            RenderSystem.enableBlend();
+            context.drawTexture(
+                    texture,
+                    drawX, drawY,
+                    0, 0,
+                    drawW, drawH,
+                    drawW, drawH
+            );
+
+            // Плавное затемнение снизу для мягкого перехода к тексту
+            context.fillGradient(this.x, this.y + this.height - 35, this.x + this.width, this.y + this.height, 0x00101014, 0xEE101014);
+
+            context.disableScissor();
+        }
+
+        @Override
+        protected int determineHorizontalContentSize(Sizing sizing) {
+            return 100;
+        }
+
+        @Override
+        protected int determineVerticalContentSize(Sizing sizing) {
+            return 100;
+        }
+    }
+
+    // Компонент компактного текста с уменьшенным масштабом шрифта
+    public static class SmallLabelComponent extends BaseComponent {
+        private final Text text;
+        private final float scale;
+        private final int color;
+        private final boolean shadow;
+        private HorizontalAlignment horizontalAlignment = HorizontalAlignment.LEFT;
+
+        public SmallLabelComponent(Text text, float scale, int color, boolean shadow) {
+            this.text = text;
+            this.scale = scale;
+            this.color = color;
+            this.shadow = shadow;
+        }
+
+        public SmallLabelComponent horizontalAlignment(HorizontalAlignment align) {
+            this.horizontalAlignment = align;
+            return this;
+        }
+
+        @Override
+        public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
+            var textRenderer = MinecraftClient.getInstance().textRenderer;
+            if (textRenderer == null) return;
+            var matrices = context.getMatrices();
+            matrices.push();
+
+            int textWidth = textRenderer.getWidth(text);
+            float renderX = this.x;
+            if (horizontalAlignment == HorizontalAlignment.CENTER) {
+                renderX = this.x + (this.width - textWidth * scale) / 2.0f;
+            } else if (horizontalAlignment == HorizontalAlignment.RIGHT) {
+                renderX = this.x + this.width - textWidth * scale;
+            }
+
+            matrices.translate(renderX, this.y, 0);
+            matrices.scale(scale, scale, 1.0f);
+
+            if (shadow) {
+                context.drawTextWithShadow(textRenderer, text, 0, 0, color);
+            } else {
+                context.drawText(textRenderer, text, 0, 0, color, false);
+            }
+            matrices.pop();
+        }
+
+        @Override
+        protected int determineHorizontalContentSize(Sizing sizing) {
+            var textRenderer = MinecraftClient.getInstance().textRenderer;
+            return textRenderer != null ? (int) Math.ceil(textRenderer.getWidth(text) * scale) : 10;
+        }
+
+        @Override
+        protected int determineVerticalContentSize(Sizing sizing) {
+            var textRenderer = MinecraftClient.getInstance().textRenderer;
+            return textRenderer != null ? (int) Math.ceil(textRenderer.fontHeight * scale) : 8;
+        }
+    }
+
+    public static SmallLabelComponent smallLabel(Text text, float scale, int color) {
+        return new SmallLabelComponent(text, scale, color, true);
+    }
+
+    public static SmallLabelComponent smallLabel(String text, float scale, int color) {
+        return new SmallLabelComponent(Text.literal(text), scale, color, true);
     }
 
     @Override
@@ -120,33 +228,76 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
         allSpawnableEntities.clear();
         for (EntityType<?> type : Registries.ENTITY_TYPE) allSpawnableEntities.add(type);
 
-        // Главное окно на весь экран с ПРОЗРАЧНОЙ поверхностью (0x88101014)
-        FlowLayout windowBox = Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100));
+        FlowLayout windowBox = Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(100));
         windowBox.surface(Surface.flat(0x88101014));
-        windowBox.padding(Insets.of(12));
+        windowBox.padding(Insets.of(8));
         windowBox.gap(8);
 
-        // ================= 1. ВЕРХНИЙ БАР ВКЛАДОК =================
-        tabsBar = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(26));
-        tabsBar.gap(6);
-        tabsBar.verticalAlignment(VerticalAlignment.CENTER);
+        // ================= 1. ЛЕВЫЙ САЙДБАР =================
+        FlowLayout leftSidebar = Containers.verticalFlow(Sizing.fixed(110), Sizing.fill(100));
+        leftSidebar.surface(Surface.flat(0xCC14141A));
+        leftSidebar.padding(Insets.of(6));
+        leftSidebar.gap(6);
+
+        FlowLayout headerBox = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        headerBox.horizontalAlignment(HorizontalAlignment.CENTER);
+        headerBox.margins(Insets.bottom(6));
+        headerBox.child(smallLabel(Text.literal("MOGDOP'S MOD"), 0.85f, 0xFF00C8FF).horizontalAlignment(HorizontalAlignment.CENTER));
+        headerBox.child(smallLabel(Text.literal("v0.2.0"), 0.65f, 0x88AAAAAA).horizontalAlignment(HorizontalAlignment.CENTER));
+        leftSidebar.child(headerBox);
+
+        tabsSidebar = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        tabsSidebar.gap(4);
 
         for (TabModule tab : tabs) {
-            FlowLayout tabBtn = createFlatButton(130, 24, Components.label(tab.getTitle()), () -> {
-                this.currentTabModule = tab;
-                tab.onSelected();
-                rebuildTabUI();
-            });
-            tabsBar.child(tabBtn);
+            FlowLayout tabBtn = createSidebarTabButton(tab);
+            tabsSidebar.child(tabBtn);
         }
-        windowBox.child(tabsBar);
+        leftSidebar.child(tabsSidebar);
 
-        // ================= 2. ОБЛАСТЬ КОНТЕНТА ВКЛАДКИ =================
+        windowBox.child(leftSidebar);
+
+        // ================= 2. ПРАВАЯ ОБЛАСТЬ КОНТЕНТА =================
         tabContentWrapper = Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100));
+        tabContentWrapper.surface(Surface.flat(0xAA16161E));
+        tabContentWrapper.padding(Insets.of(8));
         windowBox.child(tabContentWrapper);
 
         rootComponent.child(windowBox);
         rebuildTabUI();
+    }
+
+    private FlowLayout createSidebarTabButton(TabModule tab) {
+        boolean isSelected = (tab == currentTabModule);
+        FlowLayout btn = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
+        btn.surface(Surface.flat(isSelected ? 0xCC00C8FF : 0x6622222A));
+        btn.cursorStyle(CursorStyle.HAND);
+        btn.horizontalAlignment(HorizontalAlignment.CENTER);
+        btn.verticalAlignment(VerticalAlignment.CENTER);
+        btn.padding(Insets.of(2));
+
+        SmallLabelComponent lbl = smallLabel(tab.getTitle(), 0.78f, isSelected ? 0xFFFFFFFF : 0xFFAAAAAA);
+        lbl.horizontalAlignment(HorizontalAlignment.CENTER);
+        btn.child(lbl);
+
+        btn.mouseEnter().subscribe(() -> {
+            if (tab != currentTabModule) btn.surface(Surface.flat(0xAA333340));
+        });
+        btn.mouseLeave().subscribe(() -> {
+            if (tab != currentTabModule) btn.surface(Surface.flat(0x6622222A));
+            else btn.surface(Surface.flat(0xCC00C8FF));
+        });
+        btn.mouseDown().subscribe((mX, mY, button) -> {
+            if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+                this.currentTabModule = tab;
+                tab.onSelected();
+                rebuildTabUI();
+                return true;
+            }
+            return false;
+        });
+
+        return btn;
     }
 
     @Override
@@ -161,11 +312,8 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
         RenderSystem.enableBlend();
         context.setShaderColor(1f, 1f, 1f, uiAlpha);
 
-        // Прозрачное мягкое затемнение заднего плана
         int bgAlpha = (int) (100 * uiAlpha * uiOpacity);
         context.fill(0, 0, this.width, this.height, (bgAlpha << 24) | 0x000000);
-
-        // Четкая 1px окантовка вокруг экрана
         context.drawBorder(0, 0, this.width, this.height, 0xFF00C8FF);
 
         super.render(context, mouseX, mouseY, delta);
@@ -174,27 +322,11 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
         RenderSystem.disableBlend();
     }
 
-    private void scanNearbyEntities() {
-        nearbyEntities.clear();
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player == null || client.world == null) return;
-        Box scanBox = client.player.getBoundingBox().expand(50.0D);
-        List<Entity> list = client.world.getOtherEntities(client.player, scanBox, e -> e.isAlive() && !(e instanceof PlayerEntity));
-        nearbyEntities.addAll(list);
-    }
-
     private void rebuildTabUI() {
-        if (tabsBar != null) {
-            for (int i = 0; i < tabs.size(); i++) {
-                FlowLayout btn = (FlowLayout) tabsBar.children().get(i);
-                LabelComponent label = (LabelComponent) btn.children().get(0);
-                if (tabs.get(i) == currentTabModule) {
-                    btn.surface(vanillaSkin ? Surface.DARK_PANEL : Surface.flat(0xCC00C8FF));
-                    label.color(Color.ofArgb(0xFFFFFFFF));
-                } else {
-                    btn.surface(vanillaSkin ? Surface.flat(0x33FFFFFF) : Surface.flat(0x88222222));
-                    label.color(Color.ofArgb(0xFFAAAAAA));
-                }
+        if (tabsSidebar != null) {
+            tabsSidebar.clearChildren();
+            for (TabModule tab : tabs) {
+                tabsSidebar.child(createSidebarTabButton(tab));
             }
         }
 
@@ -214,25 +346,24 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     public FlowLayout createCard(Component icon, String labelText, Runnable onLeftClick, @Nullable Consumer<FlowLayout> onRightClick) {
-        var label = Components.label(Text.literal(labelText));
-        label.horizontalTextAlignment(HorizontalAlignment.CENTER);
+        var label = smallLabel(Text.literal(labelText), 0.72f, 0xFFFFFFFF).horizontalAlignment(HorizontalAlignment.CENTER);
 
         FlowLayout labelWrapper = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
         labelWrapper.horizontalAlignment(HorizontalAlignment.CENTER);
-        labelWrapper.padding(Insets.of(2));
+        labelWrapper.padding(Insets.of(1));
         labelWrapper.child(label);
 
-        FlowLayout card = Containers.verticalFlow(Sizing.fixed(80), Sizing.fixed(70));
-        card.surface(Surface.flat(0xAA2A2A2A));
+        FlowLayout card = Containers.verticalFlow(Sizing.fixed(64), Sizing.fixed(54));
+        card.surface(Surface.flat(0xAA25252D));
         card.horizontalAlignment(HorizontalAlignment.CENTER);
         card.verticalAlignment(VerticalAlignment.CENTER);
-        card.padding(Insets.of(3));
-        card.gap(4);
+        card.padding(Insets.of(2));
+        card.gap(2);
         card.cursorStyle(CursorStyle.HAND);
         card.child(icon).child(labelWrapper);
 
-        card.mouseEnter().subscribe(() -> card.surface(Surface.flat(0xDD444444)));
-        card.mouseLeave().subscribe(() -> card.surface(Surface.flat(0xAA2A2A2A)));
+        card.mouseEnter().subscribe(() -> card.surface(Surface.flat(0xDD3E3E4C)));
+        card.mouseLeave().subscribe(() -> card.surface(Surface.flat(0xAA25252D)));
         card.mouseDown().subscribe((mX, mY, button) -> {
             if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && onLeftClick != null) { onLeftClick.run(); return true; }
             if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT && onRightClick != null) { onRightClick.accept(card); return true; }
@@ -242,16 +373,16 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
         return card;
     }
 
-    public FlowLayout createFlatButton(int width, int height, LabelComponent label, Runnable onClick) {
+    public FlowLayout createFlatButton(int width, int height, Component labelComp, Runnable onClick) {
         FlowLayout btn = Containers.horizontalFlow(Sizing.fixed(width), Sizing.fixed(height));
-        btn.surface(Surface.flat(0xAA333333));
+        btn.surface(Surface.flat(0xAA2F2F38));
         btn.cursorStyle(CursorStyle.HAND);
         btn.horizontalAlignment(HorizontalAlignment.CENTER);
         btn.verticalAlignment(VerticalAlignment.CENTER);
-        btn.child(label);
+        btn.child(labelComp);
 
-        btn.mouseEnter().subscribe(() -> btn.surface(Surface.flat(0xDD555555)));
-        btn.mouseLeave().subscribe(() -> btn.surface(Surface.flat(0xAA333333)));
+        btn.mouseEnter().subscribe(() -> btn.surface(Surface.flat(0xDD4A4A58)));
+        btn.mouseLeave().subscribe(() -> btn.surface(Surface.flat(0xAA2F2F38)));
         btn.mouseDown().subscribe((mX, mY, button) -> {
             if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
                 onClick.run();
@@ -263,36 +394,27 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     public FlowLayout createFlatButton(int width, int height, Text text, Runnable onClick) {
-        return createFlatButton(width, height, Components.label(text), onClick);
+        return createFlatButton(width, height, smallLabel(text, 0.75f, 0xFFFFFFFF), onClick);
     }
 
-    // ================= ВКЛАДКА 0: ГЛАВНОЕ МЕНЮ (ПРОЗРАЧНЫЙ БАННЕР 16:9 + СКРОЛЛ) =================
+    // ================= ВКЛАДКА 0: ГЛАВНОЕ МЕНЮ (Cover-обложка + скролл) =================
     private class MainMenuTab extends TabModule {
         @Override
         public Text getTitle() { return Text.translatable("mogdops-mod.tab.main"); }
 
         @Override
         public void populateTab(FlowLayout container) {
-            container.gap(10);
+            container.gap(6);
             container.horizontalAlignment(HorizontalAlignment.CENTER);
 
-            // Прозрачный баннер 16:9
-            FlowLayout bannerBox = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
-            bannerBox.surface(Surface.flat(0x881E1E24));
-            bannerBox.padding(Insets.of(6));
-            bannerBox.verticalAlignment(VerticalAlignment.CENTER);
-            bannerBox.horizontalAlignment(HorizontalAlignment.CENTER);
+            // Обложка с автоматическим заполнением Cover
+            CoverImageComponent cover = new CoverImageComponent(LOGO_TEXTURE, 512, 288);
+            cover.sizing(Sizing.fill(100), Sizing.fixed(110));
+            container.child(cover);
 
-            Component bannerComp = Components.texture(LOGO_TEXTURE, 0, 0, 512, 288, 512, 288);
-            bannerComp.sizing(Sizing.fixed(320), Sizing.fixed(180));
-
-            bannerBox.child(bannerComp);
-            container.child(bannerBox);
-
-            // Скроллируемая полная информация о моде
             FlowLayout infoList = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
-            infoList.gap(8);
-            infoList.padding(Insets.of(4, 4, 12, 4));
+            infoList.gap(5);
+            infoList.padding(Insets.of(2, 4, 4, 4));
 
             String[] textKeys = {
                     "mogdops-mod.main_tab.info1",
@@ -305,10 +427,9 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
 
             for (String key : textKeys) {
                 FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
-                row.gap(8);
-                row.child(Components.label(Text.literal("•")).color(Color.ofArgb(0xFF00C8FF)));
-                LabelComponent txt = Components.label(Text.translatable(key));
-                txt.color(Color.ofArgb(0xFFDDDDDD));
+                row.gap(6);
+                row.child(smallLabel("•", 0.75f, 0xFF00C8FF));
+                SmallLabelComponent txt = smallLabel(Text.translatable(key), 0.74f, 0xFFCCCCCC);
                 txt.sizing(Sizing.fill(100), Sizing.content());
                 row.child(txt);
                 infoList.child(row);
@@ -347,19 +468,18 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
         private void buildMobsGridWithTopBar(FlowLayout container) {
             FlowLayout topBar = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
             topBar.verticalAlignment(VerticalAlignment.CENTER);
-            topBar.gap(10);
-            topBar.margins(Insets.bottom(6));
+            topBar.gap(8);
+            topBar.margins(Insets.bottom(4));
 
-            TextBoxComponent searchBox = Components.textBox(Sizing.fixed(160));
+            TextBoxComponent searchBox = Components.textBox(Sizing.fixed(140));
             searchBox.setPlaceholder(Text.translatable("mogdops-mod.search"));
             searchBox.setText(search);
             searchBox.onChanged().subscribe(text -> { search = text; rebuildTabUI(); });
             topBar.child(searchBox);
 
-            LabelComponent categoryLabel = Components.label(Text.literal(Text.translatable(categoryKeys[categoryIndex]).getString() + " ▼"));
-            FlowLayout categoryBtn = createFlatButton(140, 20, categoryLabel, () -> {
+            Component categoryLabel = smallLabel(Text.literal(Text.translatable(categoryKeys[categoryIndex]).getString() + " ▼"), 0.75f, 0xFFFFFFFF);
+            FlowLayout categoryBtn = createFlatButton(120, 18, categoryLabel, () -> {
                 categoryIndex = (categoryIndex + 1) % categoryKeys.length;
-                categoryLabel.text(Text.literal(Text.translatable(categoryKeys[categoryIndex]).getString() + " ▼"));
                 rebuildTabUI();
             });
             topBar.child(categoryBtn);
@@ -372,11 +492,12 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
             container.child(topBar);
 
             FlowLayout grid = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
-            grid.gap(8);
+            grid.gap(6);
 
             String lowerFilter = search.toLowerCase();
             FlowLayout currentRow = null;
             int itemsInRow = 0;
+            int maxPerRow = 7;
 
             for (EntityType<?> type : allSpawnableEntities) {
                 SpawnGroup group = type.getSpawnGroup();
@@ -396,7 +517,7 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
                 try { entityToRender = type.create(MinecraftClient.getInstance().world); } catch (Exception e) { continue; }
                 if (entityToRender == null) continue;
 
-                EntityComponent<Entity> icon = Components.entity(Sizing.fixed(40), entityToRender);
+                EntityComponent<Entity> icon = Components.entity(Sizing.fixed(32), entityToRender);
                 icon.allowMouseRotation(true); icon.lookAtCursor(true);
 
                 Component card = createCard(icon, name, () -> {
@@ -407,10 +528,10 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
                     rebuildTabUI();
                 });
 
-                if (currentRow == null || itemsInRow >= maxItemsPerRow) {
+                if (currentRow == null || itemsInRow >= maxPerRow) {
                     if (currentRow != null) grid.child(currentRow);
                     currentRow = Containers.horizontalFlow(Sizing.content(), Sizing.content());
-                    currentRow.gap(10);
+                    currentRow.gap(6);
                     itemsInRow = 0;
                 }
                 currentRow.child(card); itemsInRow++;
@@ -423,20 +544,20 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
         }
 
         private void buildMobConfiguratorLayout(FlowLayout container) {
-            container.child(createFlatButton(120, 20, Text.translatable("mogdops-mod.back_to_list"), () -> {
+            container.child(createFlatButton(110, 18, Text.translatable("mogdops-mod.back_to_list"), () -> {
                 configuringMob = null;
                 rebuildTabUI();
             }).margins(Insets.bottom(6)));
 
             FlowLayout mainContainer = Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(100));
-            mainContainer.gap(15);
+            mainContainer.gap(12);
 
-            FlowLayout leftCol = Containers.verticalFlow(Sizing.fixed(260), Sizing.content());
+            FlowLayout leftCol = Containers.verticalFlow(Sizing.fixed(220), Sizing.content());
             leftCol.surface(Surface.flat(0x88222222));
-            leftCol.padding(Insets.of(8));
-            leftCol.gap(6);
+            leftCol.padding(Insets.of(6));
+            leftCol.gap(5);
 
-            TextBoxComponent nameBox = Components.textBox(Sizing.fixed(100));
+            TextBoxComponent nameBox = Components.textBox(Sizing.fixed(90));
             nameBox.setText(mobCustomName);
             nameBox.onChanged().subscribe(t -> mobCustomName = t);
             leftCol.child(createLabelRow(Text.translatable("mogdops-mod.mob_editor.custom_name").getString(), nameBox));
@@ -461,29 +582,29 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
             glowingCheck.onChanged(s -> mobGlowing = s);
             leftCol.child(createLabelRow(Text.translatable("mogdops-mod.mob_editor.glowing").getString(), glowingCheck));
 
-            ScrollContainer<FlowLayout> leftScroll = Containers.verticalScroll(Sizing.fixed(260), Sizing.fill(100), leftCol);
+            ScrollContainer<FlowLayout> leftScroll = Containers.verticalScroll(Sizing.fixed(220), Sizing.fill(100), leftCol);
             mainContainer.child(leftScroll);
 
             FlowLayout rightCol = Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100));
             rightCol.surface(Surface.flat(0x88222222));
-            rightCol.padding(Insets.of(8));
+            rightCol.padding(Insets.of(6));
             rightCol.horizontalAlignment(HorizontalAlignment.CENTER);
 
             Entity entity;
             try { entity = configuringMob.create(MinecraftClient.getInstance().world); } catch (Exception e) { entity = null; }
             if (entity != null) {
-                EntityComponent<Entity> entityComp = Components.entity(Sizing.fixed(80), entity);
+                EntityComponent<Entity> entityComp = Components.entity(Sizing.fixed(70), entity);
                 entityComp.allowMouseRotation(true); entityComp.lookAtCursor(true);
                 rightCol.child(entityComp);
             }
 
-            rightCol.child(createFlatButton(180, 22, Text.translatable("mogdops-mod.mob_editor.spawn_click"), () -> {
+            rightCol.child(createFlatButton(160, 20, Text.translatable("mogdops-mod.mob_editor.spawn_click"), () -> {
                 ClientPlayNetworking.send(new SpawnEntityPayload(
                         Registries.ENTITY_TYPE.getId(configuringMob).toString(),
                         mobCustomName, mobNameVisible, mobNoGravity, mobSilent, mobGlowing, mobIsBaby, mobSlimeSize, mobFireTicks
                 ));
                 SpawnerScreen.this.triggerSpawnEffect();
-            }).margins(Insets.top(8)));
+            }).margins(Insets.top(6)));
 
             mainContainer.child(rightCol);
             container.child(mainContainer);
@@ -492,9 +613,9 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
         private FlowLayout createLabelRow(String labelText, Component input) {
             FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
             row.verticalAlignment(VerticalAlignment.CENTER);
-            row.gap(8);
-            LabelComponent lbl = Components.label(Text.literal(labelText));
-            lbl.sizing(Sizing.fixed(130), Sizing.content());
+            row.gap(6);
+            Component lbl = smallLabel(labelText, 0.74f, 0xFFDDDDDD);
+            lbl.sizing(Sizing.fixed(110), Sizing.content());
             row.child(lbl).child(input);
             return row;
         }
@@ -517,19 +638,20 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
         }
 
         private void buildItemsGridWithTopBar(FlowLayout container) {
-            TextBoxComponent searchBox = Components.textBox(Sizing.fixed(180));
+            TextBoxComponent searchBox = Components.textBox(Sizing.fixed(160));
             searchBox.setPlaceholder(Text.translatable("mogdops-mod.item_creator.search_item"));
             searchBox.setText(search);
             searchBox.onChanged().subscribe(text -> { search = text; rebuildTabUI(); });
-            container.child(searchBox.margins(Insets.bottom(6)));
+            container.child(searchBox.margins(Insets.bottom(4)));
 
             FlowLayout grid = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
-            grid.gap(8);
+            grid.gap(6);
 
             String lowerFilter = search.toLowerCase();
             FlowLayout currentRow = null;
             int itemsInRow = 0;
             int renderCount = 0;
+            int maxPerRow = 7;
 
             for (Item item : Registries.ITEM) {
                 if (item instanceof BlockItem) continue;
@@ -538,7 +660,7 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
                 String id = Registries.ITEM.getId(item).getPath();
                 if (!search.isEmpty() && !name.toLowerCase().contains(lowerFilter) && !id.toLowerCase().contains(lowerFilter)) continue;
 
-                FlowLayout iconWrapper = Containers.horizontalFlow(Sizing.fixed(32), Sizing.fixed(32));
+                FlowLayout iconWrapper = Containers.horizontalFlow(Sizing.fixed(24), Sizing.fixed(24));
                 iconWrapper.horizontalAlignment(HorizontalAlignment.CENTER);
                 iconWrapper.verticalAlignment(VerticalAlignment.CENTER);
                 iconWrapper.child(Components.item(new ItemStack(item)));
@@ -548,16 +670,16 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
                     rebuildTabUI();
                 }, null);
 
-                if (currentRow == null || itemsInRow >= 6) {
+                if (currentRow == null || itemsInRow >= maxPerRow) {
                     if (currentRow != null) grid.child(currentRow);
                     currentRow = Containers.horizontalFlow(Sizing.content(), Sizing.content());
-                    currentRow.gap(10);
+                    currentRow.gap(6);
                     itemsInRow = 0;
                 }
                 currentRow.child(card); itemsInRow++;
 
                 renderCount++;
-                if (renderCount >= 120) break;
+                if (renderCount >= 140) break;
             }
             if (currentRow != null && itemsInRow > 0) grid.child(currentRow);
 
@@ -567,36 +689,36 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
         }
 
         private void buildConfiguratorLayout(FlowLayout container) {
-            container.child(createFlatButton(120, 20, Text.translatable("mogdops-mod.back_to_list"), () -> {
+            container.child(createFlatButton(110, 18, Text.translatable("mogdops-mod.back_to_list"), () -> {
                 configuringItem = null;
                 rebuildTabUI();
             }).margins(Insets.bottom(6)));
 
             FlowLayout mainContainer = Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(100));
-            mainContainer.gap(15);
+            mainContainer.gap(12);
 
             FlowLayout rightCol = Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100));
             rightCol.surface(Surface.flat(0x88222222));
-            rightCol.padding(Insets.of(10));
+            rightCol.padding(Insets.of(8));
             rightCol.horizontalAlignment(HorizontalAlignment.CENTER);
 
-            rightCol.child(Components.item(new ItemStack(configuringItem)).margins(Insets.bottom(10)));
-            rightCol.child(Components.label(configuringItem.getName()).margins(Insets.bottom(10)));
+            rightCol.child(Components.item(new ItemStack(configuringItem)).margins(Insets.bottom(6)));
+            rightCol.child(smallLabel(configuringItem.getName(), 0.80f, 0xFFFFAA00).margins(Insets.bottom(8)));
 
             FlowLayout countRow = Containers.horizontalFlow(Sizing.content(), Sizing.content());
             countRow.verticalAlignment(VerticalAlignment.CENTER);
-            countRow.gap(10);
-            countRow.child(Components.label(Text.translatable("mogdops-mod.item_creator.count")));
+            countRow.gap(8);
+            countRow.child(smallLabel(Text.translatable("mogdops-mod.item_creator.count"), 0.75f, 0xFFDDDDDD));
 
-            TextBoxComponent countBox = Components.textBox(Sizing.fixed(50));
+            TextBoxComponent countBox = Components.textBox(Sizing.fixed(45));
             countBox.setTextPredicate(text -> text.matches("\\d*"));
             countBox.setText(itemCountText);
             countBox.onChanged().subscribe(t -> itemCountText = t);
             countRow.child(countBox);
 
-            rightCol.child(countRow.margins(Insets.bottom(15)));
+            rightCol.child(countRow.margins(Insets.bottom(12)));
 
-            rightCol.child(createFlatButton(180, 24, Text.translatable("mogdops-mod.item_creator.give_item"), () -> {
+            rightCol.child(createFlatButton(160, 22, Text.translatable("mogdops-mod.item_creator.give_item"), () -> {
                 int count = 1;
                 try { count = Integer.parseInt(itemCountText); } catch (Exception ignored) {}
                 ItemStack finalStack = new ItemStack(configuringItem, count);
@@ -617,11 +739,11 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
         @Override
         public void populateTab(FlowLayout container) {
             FlowLayout grid = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
-            grid.gap(12);
+            grid.gap(8);
 
-            grid.child(Components.label(Text.literal("★ WorldEdit Shortcuts")).color(Color.ofArgb(0xFF00C8FF)));
+            grid.child(smallLabel(Text.literal("★ WorldEdit Shortcuts"), 0.82f, 0xFF00C8FF));
             FlowLayout weRow = Containers.horizontalFlow(Sizing.content(), Sizing.content());
-            weRow.gap(10);
+            weRow.gap(6);
 
             ItemStack axe = new ItemStack(Items.IRON_AXE);
             axe.set(DataComponentTypes.CUSTOM_NAME, Text.translatable("mogdops-mod.tool.selection_axe.name"));
@@ -655,9 +777,9 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
 
             grid.child(weRow);
 
-            grid.child(Components.label(Text.literal("★ World & Player Cheats")).color(Color.ofArgb(0xFFFFAA00)).margins(Insets.top(6)));
+            grid.child(smallLabel(Text.literal("★ World & Player Cheats"), 0.82f, 0xFFFFAA00).margins(Insets.top(4)));
             FlowLayout cheatRow = Containers.horizontalFlow(Sizing.content(), Sizing.content());
-            cheatRow.gap(10);
+            cheatRow.gap(6);
 
             cheatRow.child(createCard(Components.item(new ItemStack(Items.SUNFLOWER)), Text.translatable("mogdops-mod.world.day").getString(), () -> ClientPlayNetworking.send(new WorldActionPayload("DAY")), null));
             cheatRow.child(createCard(Components.item(new ItemStack(Items.COAL)), Text.translatable("mogdops-mod.world.night").getString(), () -> ClientPlayNetworking.send(new WorldActionPayload("NIGHT")), null));

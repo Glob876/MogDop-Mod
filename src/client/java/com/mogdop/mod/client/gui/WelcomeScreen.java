@@ -1,6 +1,7 @@
 package com.mogdop.mod.client.gui;
 
 import com.mogdop.mod.MogDopSMod;
+import io.wispforest.owo.ui.base.BaseComponent;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.Components;
 import io.wispforest.owo.ui.component.LabelComponent;
@@ -8,10 +9,11 @@ import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.ScrollContainer;
 import io.wispforest.owo.ui.core.*;
-import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
@@ -27,10 +29,130 @@ public class WelcomeScreen extends BaseOwoScreen<FlowLayout> {
     private int currentPage = 0;
 
     private FlowLayout pageContentWrapper;
-    private LabelComponent pageIndicatorLabel;
+    private SmallLabelComponent pageIndicatorLabel;
     private FlowLayout prevBtn;
     private FlowLayout nextBtn;
-    private LabelComponent nextBtnLabel;
+    private SmallLabelComponent nextBtnLabel;
+
+    public static class SmallLabelComponent extends BaseComponent {
+        private Text text;
+        private final float scale;
+        private final int color;
+        private final boolean shadow;
+        private HorizontalAlignment horizontalAlignment = HorizontalAlignment.LEFT;
+
+        public SmallLabelComponent(Text text, float scale, int color, boolean shadow) {
+            this.text = text;
+            this.scale = scale;
+            this.color = color;
+            this.shadow = shadow;
+        }
+
+        public SmallLabelComponent text(Text text) {
+            this.text = text;
+            return this;
+        }
+
+        public Text text() {
+            return this.text;
+        }
+
+        public SmallLabelComponent horizontalAlignment(HorizontalAlignment align) {
+            this.horizontalAlignment = align;
+            return this;
+        }
+
+        @Override
+        public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
+            var textRenderer = MinecraftClient.getInstance().textRenderer;
+            if (textRenderer == null) return;
+            var matrices = context.getMatrices();
+            matrices.push();
+
+            int textWidth = textRenderer.getWidth(text);
+            float renderX = this.x;
+            if (horizontalAlignment == HorizontalAlignment.CENTER) {
+                renderX = this.x + (this.width - textWidth * scale) / 2.0f;
+            } else if (horizontalAlignment == HorizontalAlignment.RIGHT) {
+                renderX = this.x + this.width - textWidth * scale;
+            }
+
+            matrices.translate(renderX, this.y, 0);
+            matrices.scale(scale, scale, 1.0f);
+
+            if (shadow) {
+                context.drawTextWithShadow(textRenderer, text, 0, 0, color);
+            } else {
+                context.drawText(textRenderer, text, 0, 0, color, false);
+            }
+            matrices.pop();
+        }
+
+        @Override
+        protected int determineHorizontalContentSize(Sizing sizing) {
+            var textRenderer = MinecraftClient.getInstance().textRenderer;
+            return textRenderer != null ? (int) Math.ceil(textRenderer.getWidth(text) * scale) : 10;
+        }
+
+        @Override
+        protected int determineVerticalContentSize(Sizing sizing) {
+            var textRenderer = MinecraftClient.getInstance().textRenderer;
+            return textRenderer != null ? (int) Math.ceil(textRenderer.fontHeight * scale) : 8;
+        }
+    }
+
+    // Компонент текста с автопереносом строк под фиксированную ширину карточки
+    public static class SmallWrappedTextComponent extends BaseComponent {
+        private final float scale;
+        private final int color;
+        private final int maxWidth;
+        private List<OrderedText> lines = new ArrayList<>();
+
+        public SmallWrappedTextComponent(Text text, float scale, int color, int maxWidth) {
+            this.scale = scale;
+            this.color = color;
+            this.maxWidth = maxWidth;
+            var textRenderer = MinecraftClient.getInstance().textRenderer;
+            if (textRenderer != null) {
+                this.lines = textRenderer.wrapLines(text, (int)(maxWidth / scale));
+            }
+        }
+
+        @Override
+        public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
+            var textRenderer = MinecraftClient.getInstance().textRenderer;
+            if (textRenderer == null) return;
+            var matrices = context.getMatrices();
+            matrices.push();
+            matrices.translate(this.x, this.y, 0);
+            matrices.scale(scale, scale, 1.0f);
+
+            int yOffset = 0;
+            for (OrderedText line : lines) {
+                context.drawTextWithShadow(textRenderer, line, 0, yOffset, color);
+                yOffset += 10;
+            }
+            matrices.pop();
+        }
+
+        @Override
+        protected int determineHorizontalContentSize(Sizing sizing) {
+            return maxWidth;
+        }
+
+        @Override
+        protected int determineVerticalContentSize(Sizing sizing) {
+            return (int) Math.ceil(Math.max(1, lines.size()) * 10 * scale);
+        }
+    }
+
+    public static SmallLabelComponent smallLabel(Text text, float scale, int color) {
+        return new SmallLabelComponent(text, scale, color, true);
+    }
+
+    public static SmallLabelComponent smallLabel(String text, float scale, int color) {
+        return new SmallLabelComponent(Text.literal(text), scale, color, true);
+    }
 
     public WelcomeScreen() {
         initPages();
@@ -64,7 +186,7 @@ public class WelcomeScreen extends BaseOwoScreen<FlowLayout> {
                 )
         ));
 
-        // Страница 3: Быстрая панель (Зажатие H)
+        // Страница 3: Быстрая панель
         pages.add(new WelcomePage(
                 "mogdops-mod.welcome.page3.title",
                 "mogdops-mod.welcome.page3.category",
@@ -76,7 +198,7 @@ public class WelcomeScreen extends BaseOwoScreen<FlowLayout> {
                 )
         ));
 
-        // Страница 4: Режимы выделения (Клавиша J)
+        // Страница 4: Режимы выделения
         pages.add(new WelcomePage(
                 "mogdops-mod.welcome.page4.title",
                 "mogdops-mod.welcome.page4.category",
@@ -89,7 +211,7 @@ public class WelcomeScreen extends BaseOwoScreen<FlowLayout> {
                 )
         ));
 
-        // Страница 5: Спавнер и редактор мобов (Клавиша ~)
+        // Страница 5: Спавнер мобов
         pages.add(new WelcomePage(
                 "mogdops-mod.welcome.page5.title",
                 "mogdops-mod.welcome.page5.category",
@@ -101,7 +223,7 @@ public class WelcomeScreen extends BaseOwoScreen<FlowLayout> {
                 )
         ));
 
-        // Страница 6: Предметы, Мир и Читы
+        // Страница 6: Предметы и Мир
         pages.add(new WelcomePage(
                 "mogdops-mod.welcome.page6.title",
                 "mogdops-mod.welcome.page6.category",
@@ -113,7 +235,7 @@ public class WelcomeScreen extends BaseOwoScreen<FlowLayout> {
                 )
         ));
 
-        // Страница 7: Полублок-спавнер и Настройки
+        // Страница 7: Полублок-спавнер
         pages.add(new WelcomePage(
                 "mogdops-mod.welcome.page7.title",
                 "mogdops-mod.welcome.page7.category",
@@ -139,44 +261,42 @@ public class WelcomeScreen extends BaseOwoScreen<FlowLayout> {
         rootComponent.surface(Surface.flat(0xCC141414));
         rootComponent.horizontalAlignment(HorizontalAlignment.CENTER);
         rootComponent.verticalAlignment(VerticalAlignment.CENTER);
-        rootComponent.padding(Insets.of(15));
+        rootComponent.padding(Insets.of(6));
 
         // 1. Главный заголовок
-        LabelComponent title = Components.label(Text.translatable("mogdops-mod.welcome.main_title"));
-        title.color(Color.ofArgb(0xFF00C8FF));
-        title.margins(Insets.bottom(12));
+        SmallLabelComponent title = smallLabel(Text.translatable("mogdops-mod.welcome.main_title"), 0.85f, 0xFF00C8FF);
+        title.margins(Insets.bottom(4));
         rootComponent.child(title);
 
-        // 2. Основная карточка страницы (520x220px)
-        FlowLayout mainBox = Containers.horizontalFlow(Sizing.fixed(520), Sizing.fixed(220));
+        // 2. Компактная карточка страницы (380x140px)
+        FlowLayout mainBox = Containers.horizontalFlow(Sizing.fixed(380), Sizing.fixed(140));
         mainBox.surface(Surface.flat(0xFA1A1A1A));
-        mainBox.padding(Insets.of(12));
+        mainBox.padding(Insets.of(6));
 
         pageContentWrapper = Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(100));
         mainBox.child(pageContentWrapper);
         rootComponent.child(mainBox);
 
-        // 3. Нижняя панель навигации (Сбалансированная ширина 520px)
-        FlowLayout navBar = Containers.horizontalFlow(Sizing.fixed(520), Sizing.fixed(26));
+        // 3. Нижняя панель навигации (380px)
+        FlowLayout navBar = Containers.horizontalFlow(Sizing.fixed(380), Sizing.fixed(20));
         navBar.verticalAlignment(VerticalAlignment.CENTER);
-        navBar.margins(Insets.top(10));
+        navBar.margins(Insets.top(6));
 
-        prevBtn = createFlatButton(90, 22, Text.literal("← ").append(Text.translatable("mogdops-mod.welcome.prev")), () -> {
+        prevBtn = createFlatButton(80, 18, smallLabel(Text.literal("← ").append(Text.translatable("mogdops-mod.welcome.prev")), 0.72f, 0xFFFFFFFF), () -> {
             if (currentPage > 0) {
                 currentPage--;
                 updatePage();
             }
         });
 
-        pageIndicatorLabel = Components.label(Text.literal(""));
-        pageIndicatorLabel.color(Color.ofArgb(0xFFAAAAAA));
+        pageIndicatorLabel = smallLabel(Text.literal(""), 0.72f, 0xFFAAAAAA);
 
-        FlowLayout centerIndicatorBox = Containers.horizontalFlow(Sizing.fixed(280), Sizing.content());
+        FlowLayout centerIndicatorBox = Containers.horizontalFlow(Sizing.fixed(180), Sizing.content());
         centerIndicatorBox.horizontalAlignment(HorizontalAlignment.CENTER);
         centerIndicatorBox.child(pageIndicatorLabel);
 
-        nextBtnLabel = Components.label(Text.literal(""));
-        nextBtn = createFlatButton(130, 22, nextBtnLabel, () -> {
+        nextBtnLabel = smallLabel(Text.literal(""), 0.72f, 0xFFFFFFFF);
+        nextBtn = createFlatButton(100, 18, nextBtnLabel, () -> {
             if (currentPage < pages.size() - 1) {
                 currentPage++;
                 updatePage();
@@ -198,45 +318,41 @@ public class WelcomeScreen extends BaseOwoScreen<FlowLayout> {
         WelcomePage page = pages.get(currentPage);
 
         // Левая колонка (Иконка + Категория)
-        FlowLayout leftCol = Containers.verticalFlow(Sizing.fixed(120), Sizing.fill(100));
+        FlowLayout leftCol = Containers.verticalFlow(Sizing.fixed(90), Sizing.fill(100));
         leftCol.surface(Surface.flat(0xFF222222));
-        leftCol.padding(Insets.of(10));
+        leftCol.padding(Insets.of(6));
         leftCol.horizontalAlignment(HorizontalAlignment.CENTER);
         leftCol.verticalAlignment(VerticalAlignment.CENTER);
-        leftCol.gap(8);
+        leftCol.gap(4);
 
-        FlowLayout iconBox = Containers.horizontalFlow(Sizing.fixed(48), Sizing.fixed(48));
+        FlowLayout iconBox = Containers.horizontalFlow(Sizing.fixed(32), Sizing.fixed(32));
         iconBox.horizontalAlignment(HorizontalAlignment.CENTER);
         iconBox.verticalAlignment(VerticalAlignment.CENTER);
         iconBox.child(Components.item(new ItemStack(page.iconItem)));
         leftCol.child(iconBox);
 
-        LabelComponent catLabel = Components.label(Text.translatable(page.categoryKey));
-        catLabel.color(Color.ofArgb(0xFFFFAA00));
+        SmallLabelComponent catLabel = smallLabel(Text.translatable(page.categoryKey), 0.72f, 0xFFFFAA00);
+        catLabel.horizontalAlignment(HorizontalAlignment.CENTER);
         leftCol.child(catLabel);
 
         pageContentWrapper.child(leftCol);
 
-        // Правая колонка с комфортным отступом слева (Insets.left(12))
+        // Правая колонка
         FlowLayout rightCol = Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100));
-        rightCol.padding(Insets.of(2, 2, 12, 2));
-        rightCol.gap(8);
+        rightCol.padding(Insets.of(2, 2, 8, 2));
+        rightCol.gap(4);
 
-        LabelComponent pageTitle = Components.label(Text.translatable(page.titleKey));
-        pageTitle.color(Color.ofArgb(0xFF55FFFF));
+        SmallLabelComponent pageTitle = smallLabel(Text.translatable(page.titleKey), 0.78f, 0xFF55FFFF);
         rightCol.child(pageTitle);
 
         FlowLayout textList = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
-        textList.gap(6);
+        textList.gap(4);
 
         for (String key : page.textKeys) {
             FlowLayout bulletRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
-            bulletRow.gap(8);
-            bulletRow.child(Components.label(Text.literal("•")).color(Color.ofArgb(0xFF00C8FF)));
-            LabelComponent txt = Components.label(Text.translatable(key));
-            txt.color(Color.ofArgb(0xFFDDDDDD));
-            txt.sizing(Sizing.fixed(320), Sizing.content());
-            bulletRow.child(txt);
+            bulletRow.gap(4);
+            bulletRow.child(smallLabel("•", 0.72f, 0xFF00C8FF));
+            bulletRow.child(new SmallWrappedTextComponent(Text.translatable(key), 0.72f, 0xFFDDDDDD, 245));
             textList.child(bulletRow);
         }
 
@@ -246,7 +362,7 @@ public class WelcomeScreen extends BaseOwoScreen<FlowLayout> {
 
         pageContentWrapper.child(rightCol);
 
-        // Обновляем состояние индикатора страниц и кнопки «Далее →»
+        // Обновление текста индикаторов
         if (pageIndicatorLabel != null) {
             pageIndicatorLabel.text(Text.translatable("mogdops-mod.welcome.page_count", (currentPage + 1), pages.size()));
         }
@@ -260,13 +376,13 @@ public class WelcomeScreen extends BaseOwoScreen<FlowLayout> {
         }
     }
 
-    private FlowLayout createFlatButton(int width, int height, LabelComponent label, Runnable onClick) {
+    private FlowLayout createFlatButton(int width, int height, Component labelComp, Runnable onClick) {
         FlowLayout btn = Containers.horizontalFlow(Sizing.fixed(width), Sizing.fixed(height));
         btn.surface(Surface.flat(0xFF444444));
         btn.cursorStyle(CursorStyle.HAND);
         btn.horizontalAlignment(HorizontalAlignment.CENTER);
         btn.verticalAlignment(VerticalAlignment.CENTER);
-        btn.child(label);
+        btn.child(labelComp);
 
         btn.mouseEnter().subscribe(() -> btn.surface(Surface.flat(0xFF555555)));
         btn.mouseLeave().subscribe(() -> btn.surface(Surface.flat(0xFF444444)));
@@ -279,10 +395,6 @@ public class WelcomeScreen extends BaseOwoScreen<FlowLayout> {
         });
 
         return btn;
-    }
-
-    private FlowLayout createFlatButton(int width, int height, Text text, Runnable onClick) {
-        return createFlatButton(width, height, Components.label(text), onClick);
     }
 
     @Override
