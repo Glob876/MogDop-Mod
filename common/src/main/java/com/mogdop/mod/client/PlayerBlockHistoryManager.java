@@ -3,7 +3,7 @@ package com.mogdop.mod.client;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import net.fabricmc.loader.api.FabricLoader;
+import dev.architectury.platform.Platform;
 import net.minecraft.client.MinecraftClient;
 
 import java.io.File;
@@ -18,7 +18,7 @@ import java.util.Map;
 public class PlayerBlockHistoryManager {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final File FILE = FabricLoader.getInstance().getConfigDir().resolve("mogdops-mod-block-history.json").toFile();
+    private static final File FILE = Platform.getConfigFolder().resolve("mogdops-mod-block-history.json").toFile();
 
     private static Map<String, List<String>> historyMap = new HashMap<>();
 

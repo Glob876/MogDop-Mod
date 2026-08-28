@@ -1,6 +1,7 @@
 plugins {
 	id "architectury-plugin" version "3.4-SNAPSHOT"
-	id "dev.architectury.loom" version "${architectury_loom_version}" apply false
+	id "dev.architectury.loom" version "1.9-SNAPSHOT" apply false
+	id "com.github.johnrengelman.shadow" version "8.1.1" apply false
 }
 
 architectury {
@@ -8,11 +9,7 @@ architectury {
 }
 
 subprojects {
-	apply plugin: "dev.architectury.loom"
-
-	loom {
-		silentMojangMappingsLicense()
-	}
+	apply plugin: "java"
 
 	repositories {
 		mavenCentral()
@@ -20,11 +17,6 @@ subprojects {
 		maven { url = "https://maven.architectury.dev/" }
 		maven { url = "https://maven.neoforged.net/releases/" }
 		flatDir { dirs rootProject.file("libs") }
-	}
-
-	dependencies {
-		minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
-		mappings "net.fabricmc:yarn:${rootProject.yarn_mappings}:v2"
 	}
 
 	tasks.withType(JavaCompile).configureEach {
@@ -39,8 +31,11 @@ subprojects {
 }
 
 allprojects {
-	apply plugin: "architectury-plugin"
-
 	version = rootProject.mod_version
 	group = rootProject.maven_group
+}
+
+// Алиас для быстрого запуска Fabric-клиента из корня
+tasks.register("runClient") {
+	dependsOn(":fabric:runClient")
 }

@@ -3,6 +3,8 @@ package com.mogdop.mod.client.gui;
 import com.mogdop.mod.client.MogDopSModClient;
 import com.mogdop.mod.client.render.ClientImageTextureManager;
 import com.mogdop.mod.network.SpawnImagePayload;
+import dev.architectury.networking.NetworkManager;
+import dev.architectury.platform.Platform;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.Components;
 import io.wispforest.owo.ui.component.LabelComponent;
@@ -11,8 +13,6 @@ import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.ScrollContainer;
 import io.wispforest.owo.ui.core.*;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -31,7 +31,7 @@ import java.util.Locale;
 
 public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
 
-    private String currentRelPath = ""; // Пустой = корневая папка 'pics'
+    private String currentRelPath = "";
     private String searchFilter = "";
     private String selectedFilename = null;
 
@@ -40,9 +40,7 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
     private FlowLayout rightPreviewPanel;
 
     @Override
-    public boolean shouldPause() {
-        return false;
-    }
+    public boolean shouldPause() { return false; }
 
     @Override
     protected @NotNull OwoUIAdapter<FlowLayout> createAdapter() {
@@ -50,7 +48,7 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private File getBasePicsFolder() {
-        File folder = FabricLoader.getInstance().getConfigDir().resolve("pics").toFile();
+        File folder = Platform.getConfigFolder().resolve("pics").toFile();
         if (!folder.exists()) folder.mkdirs();
         return folder;
     }
@@ -74,14 +72,10 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
     private void navigateUp() {
         if (currentRelPath.isEmpty()) return;
         int lastSlash = currentRelPath.lastIndexOf('/');
-        if (lastSlash == -1) {
-            lastSlash = currentRelPath.lastIndexOf('\\');
-        }
-        if (lastSlash <= 0) {
-            currentRelPath = "";
-        } else {
-            currentRelPath = currentRelPath.substring(0, lastSlash);
-        }
+        if (lastSlash == -1) lastSlash = currentRelPath.lastIndexOf('\\');
+        if (lastSlash <= 0) currentRelPath = "";
+        else currentRelPath = currentRelPath.substring(0, lastSlash);
+
         selectedFilename = null;
         updatePathDisplay();
         rebuildFileList();
@@ -89,11 +83,9 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private void enterDirectory(String dirName) {
-        if (currentRelPath.isEmpty()) {
-            currentRelPath = dirName;
-        } else {
-            currentRelPath = currentRelPath + "/" + dirName;
-        }
+        if (currentRelPath.isEmpty()) currentRelPath = dirName;
+        else currentRelPath = currentRelPath + "/" + dirName;
+
         selectedFilename = null;
         updatePathDisplay();
         rebuildFileList();
@@ -114,23 +106,19 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
         rootComponent.verticalAlignment(VerticalAlignment.CENTER);
         rootComponent.padding(Insets.of(15));
 
-        // 1. Заголовок экрана
         LabelComponent title = Components.label(Text.translatable("mogdops-mod.image.title"));
         title.color(Color.ofArgb(0xFF00C8FF));
         title.margins(Insets.bottom(12));
         rootComponent.child(title);
 
-        // 2. Главный бокс (520x240px)
         FlowLayout mainBox = Containers.horizontalFlow(Sizing.fixed(520), Sizing.fixed(240));
         mainBox.surface(Surface.flat(0xFA1A1A1A));
         mainBox.padding(Insets.of(10));
         mainBox.gap(15);
 
-        // ================= ЛЕВАЯ КОЛОНКА (Список папок/файлов + Навигация) =================
         FlowLayout leftCol = Containers.verticalFlow(Sizing.fixed(235), Sizing.fill(100));
         leftCol.gap(6);
 
-        // Отображение текущего пути (хлебные крошки)
         pathBreadcrumbLabel = Components.label(Text.literal(""));
         pathBreadcrumbLabel.color(Color.ofArgb(0xFF55FFFF));
         pathBreadcrumbLabel.sizing(Sizing.fill(100), Sizing.content());
@@ -173,7 +161,6 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
 
         mainBox.child(leftCol);
 
-        // ================= ПРАВАЯ КОЛОНКА (Предпросмотр + Кнопка размещения) =================
         rightPreviewPanel = Containers.verticalFlow(Sizing.fixed(250), Sizing.fill(100));
         rightPreviewPanel.surface(Surface.flat(0xFF222222));
         rightPreviewPanel.padding(Insets.of(8));
@@ -193,7 +180,6 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
 
         File currentFolder = getCurrentFolder();
 
-        // 1. Кнопка возврата на уровень выше (..)
         if (!currentRelPath.isEmpty()) {
             FlowLayout upRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(22));
             upRow.surface(Surface.flat(0xFF2D2D35));
@@ -228,9 +214,8 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
         List<File> imageFiles = new ArrayList<>();
 
         for (File f : subFiles) {
-            if (f.isDirectory()) {
-                directories.add(f);
-            } else {
+            if (f.isDirectory()) directories.add(f);
+            else {
                 String lower = f.getName().toLowerCase();
                 if (lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".webp") || lower.endsWith(".bmp")) {
                     imageFiles.add(f);
@@ -240,12 +225,9 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
 
         String lowerFilter = searchFilter.toLowerCase();
 
-        // 2. Список папок
         for (File dir : directories) {
             String dirName = dir.getName();
-            if (!searchFilter.isEmpty() && !dirName.toLowerCase().contains(lowerFilter)) {
-                continue;
-            }
+            if (!searchFilter.isEmpty() && !dirName.toLowerCase().contains(lowerFilter)) continue;
 
             FlowLayout dirRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(22));
             dirRow.surface(Surface.flat(0xFF252528));
@@ -273,13 +255,10 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
             fileListContainer.child(dirRow);
         }
 
-        // 3. Список изображений
         int imagesShown = 0;
         for (File img : imageFiles) {
             String fileName = img.getName();
-            if (!searchFilter.isEmpty() && !fileName.toLowerCase().contains(lowerFilter)) {
-                continue;
-            }
+            if (!searchFilter.isEmpty() && !fileName.toLowerCase().contains(lowerFilter)) continue;
             imagesShown++;
 
             String fullRelativeName = currentRelPath.isEmpty() ? fileName : currentRelPath + "/" + fileName;
@@ -299,16 +278,11 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
             row.child(nameLbl);
 
             row.mouseEnter().subscribe(() -> {
-                if (!fullRelativeName.equals(selectedFilename)) {
-                    row.surface(Surface.flat(0xFF555555));
-                }
+                if (!fullRelativeName.equals(selectedFilename)) row.surface(Surface.flat(0xFF555555));
             });
             row.mouseLeave().subscribe(() -> {
-                if (!fullRelativeName.equals(selectedFilename)) {
-                    row.surface(Surface.flat(0xFF333333));
-                } else {
-                    row.surface(Surface.flat(0xFF00AAFF));
-                }
+                if (!fullRelativeName.equals(selectedFilename)) row.surface(Surface.flat(0xFF333333));
+                else row.surface(Surface.flat(0xFF00AAFF));
             });
             row.mouseDown().subscribe((mX, mY, button) -> {
                 if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
@@ -396,7 +370,7 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
 
         FlowLayout placeBtn = createFlatButton(200, 22, Text.translatable("mogdops-mod.image.btn_place"), () -> {
             if (selectedFilename != null && p1 != null && p2 != null) {
-                ClientPlayNetworking.send(new SpawnImagePayload(
+                NetworkManager.sendToServer(new SpawnImagePayload(
                         selectedFilename,
                         p1.x, p1.y, p1.z,
                         p2.x, p2.y, p2.z,

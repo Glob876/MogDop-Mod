@@ -53,7 +53,6 @@ public class SelectionModeScreen extends BaseOwoScreen<FlowLayout> {
 
     private void initOptions() {
         options.clear();
-        // Равномерное круговое распределение 3 режимов WorldEdit (0°, 120°, 240°)
         options.add(new ModeOption("mogdops-mod.selection_mode.cuboid", "mogdops-mod.selection_mode.cuboid.desc", Items.WOODEN_AXE, 0, -90.0));
         options.add(new ModeOption("mogdops-mod.selection_mode.poly", "mogdops-mod.selection_mode.poly.desc", Items.COMPASS, 1, 30.0));
         options.add(new ModeOption("mogdops-mod.selection_mode.convex", "mogdops-mod.selection_mode.convex.desc", Items.NETHER_STAR, 2, 150.0));
@@ -107,7 +106,7 @@ public class SelectionModeScreen extends BaseOwoScreen<FlowLayout> {
         double distFromCenter = Math.sqrt(mDx * mDx + mDy * mDy);
 
         if (distFromCenter < 30.0) {
-            hoverIndex = -1; // В мертвой зоне в центре кубик клеится к центру экрана
+            hoverIndex = -1;
         } else {
             double mouseAngle = Math.atan2(mDy, mDx);
             double minDiff = Double.MAX_VALUE;
@@ -125,7 +124,7 @@ public class SelectionModeScreen extends BaseOwoScreen<FlowLayout> {
         }
 
         double targetCubeX = centerX;
-        double targetCubeY = centerY - 25; // Приподнятый центр!
+        double targetCubeY = centerY - 25;
 
         if (hoverIndex >= 0 && hoverIndex < options.size()) {
             ModeOption opt = options.get(hoverIndex);
@@ -143,7 +142,6 @@ public class SelectionModeScreen extends BaseOwoScreen<FlowLayout> {
             initialized = true;
         }
 
-        // Ease-In-Out плавная слежка кубика-курсора
         double dx = targetCubeX - cubeX;
         double dy = targetCubeY - cubeY;
         double dist = Math.sqrt(dx * dx + dy * dy);
@@ -159,7 +157,6 @@ public class SelectionModeScreen extends BaseOwoScreen<FlowLayout> {
 
         super.render(context, mouseX, mouseY, delta);
 
-        // ================= ИНФОРМАЦИОННЫЙ ЗАГОЛОВОК =================
         int topY = 30;
         context.drawTextWithShadow(this.textRenderer, Text.translatable("mogdops-mod.selection_mode.title"), centerX - this.textRenderer.getWidth(Text.translatable("mogdops-mod.selection_mode.title")) / 2, topY, 0xFF00C8FF);
 
@@ -172,7 +169,6 @@ public class SelectionModeScreen extends BaseOwoScreen<FlowLayout> {
             context.drawTextWithShadow(this.textRenderer, descText, centerX - this.textRenderer.getWidth(descText) / 2, topY + 30, 0xFFAAAAAA);
         }
 
-        // ================= КРУГОВАЯ ОТРИСОВКА 3 РЕЖИМОВ =================
         for (int i = 0; i < options.size(); i++) {
             ModeOption opt = options.get(i);
             boolean isSelected = (i == hoverIndex);
@@ -200,23 +196,15 @@ public class SelectionModeScreen extends BaseOwoScreen<FlowLayout> {
             context.drawTextWithShadow(this.textRenderer, cardTitle, cardX + cardWidth / 2 - titleWidth / 2, cardY + 38, isSelected ? 0xFFFFFFFF : 0x88FFFFFF);
         }
 
-        // ================= 3D КУБИК =================
         RenderSystem.disableDepthTest();
         context.getMatrices().push();
         context.getMatrices().translate(0, 0, 1000f);
 
-        drawCubeCursor(context, (float) cubeX, (float) cubeY, animTimer);
-
-        context.getMatrices().pop();
-        RenderSystem.enableDepthTest();
-    }
-
-    private void drawCubeCursor(DrawContext context, float cx, float cy, float time) {
         int r = 10;
-        int x = (int) cx;
-        int y = (int) cy;
+        int x = (int) cubeX;
+        int y = (int) cubeY;
 
-        int alphaGlow = (int) (160 + 80 * Math.sin(time * 0.25));
+        int alphaGlow = (int) (160 + 80 * Math.sin(animTimer * 0.25));
         int glowColor = (alphaGlow << 24) | 0x00C8FF;
 
         context.fill(x - r - 4, y - r - 4, x + r + 5, y + r + 5, glowColor & 0x4400C8FF);
@@ -226,6 +214,9 @@ public class SelectionModeScreen extends BaseOwoScreen<FlowLayout> {
         context.fill(x, y, x + r, y + r, 0xFF0055AA);
 
         context.drawBorder(x - r, y - r, r * 2 + 1, r * 2 + 1, 0xFFFFFFFF);
+
+        context.getMatrices().pop();
+        RenderSystem.enableDepthTest();
     }
 
     private void executeSelectMode() {

@@ -12,7 +12,7 @@ import com.mogdop.mod.client.render.ImageDisplayEntityRenderer;
 import com.mogdop.mod.network.*;
 import dev.architectury.event.events.client.ClientTickEvent;
 import dev.architectury.registry.client.keymappings.KeyMappingRegistry;
-import dev.architectury.registry.client.rendering.EntityRendererRegistry;
+import dev.architectury.registry.client.level.entity.EntityRendererRegistry;
 import dev.architectury.networking.NetworkManager;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
@@ -181,6 +181,122 @@ public class MogDopSModClient {
         }
     }
 
+    public static Direction getTargetedSelectionFace() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.player == null || pos1 == null || pos2 == null) return null;
+
+        double minX = Math.min(pos1.getX(), pos2.getX());
+        double minY = Math.min(pos1.getY(), pos2.getY());
+        double minZ = Math.min(pos1.getZ(), pos2.getZ());
+
+        double maxX = Math.max(pos1.getX(), pos2.getX()) + 1.0;
+        double maxY = Math.max(pos1.getY(), pos2.getY()) + 1.0;
+        double maxZ = Math.max(pos1.getZ(), pos2.getZ()) + 1.0;
+
+        Box box = new Box(minX, minY, minZ, maxX, maxY, maxZ);
+
+        Vec3d eyePos = client.player.getEyePos();
+        Vec3d rotVec = client.player.getRotationVec(1.0F);
+        Vec3d reachVec = eyePos.add(rotVec.multiply(50.0D));
+
+        Optional<Vec3d> hitOpt = box.raycast(eyePos, reachVec);
+        if (hitOpt.isEmpty()) return null;
+
+        Vec3d hit = hitOpt.get();
+        double eps = 1e-3;
+
+        if (Math.abs(hit.x - minX) < eps) return Direction.WEST;
+        if (Math.abs(hit.x - maxX) < eps) return Direction.EAST;
+        if (Math.abs(hit.y - minY) < eps) return Direction.DOWN;
+        if (Math.abs(hit.y - maxY) < eps) return Direction.UP;
+        if (Math.abs(hit.z - minZ) < eps) return Direction.NORTH;
+        if (Math.abs(hit.z - maxZ) < eps) return Direction.SOUTH;
+
+        return null;
+    }
+
+    public static void expandSelectionFace(Direction face, int delta) {
+        if (pos1 == null || pos2 == null || delta == 0) return;
+
+        int minX = Math.min(pos1.getX(), pos2.getX());
+        int maxX = Math.max(pos1.getX(), pos2.getX());
+        int minY = Math.min(pos1.getY(), pos2.getY());
+        int maxY = Math.max(pos1.getY(), pos2.getY());
+        int minZ = Math.min(pos1.getZ(), pos2.getZ());
+        int maxZ = Math.max(pos1.getZ(), pos2.getZ());
+
+        switch (face) {
+            case EAST -> {
+                if (pos1.getX() == maxX) pos1 = pos1.add(delta, 0, 0);
+                else pos2 = pos2.add(delta, 0, 0);
+            }
+            case WEST -> {
+                if (pos1.getX() == minX) pos1 = pos1.add(-delta, 0, 0);
+                else pos2 = pos2.add(-delta, 0, 0);
+            }
+            case UP -> {
+                if (pos1.getY() == maxY) pos1 = pos1.add(0, delta, 0);
+                else pos2 = pos2.add(0, delta, 0);
+            }
+            case DOWN -> {
+                if (pos1.getY() == minY) pos1 = pos1.add(0, -delta, 0);
+                else pos2 = pos2.add(0, -delta, 0);
+            }
+            case SOUTH -> {
+                if (pos1.getZ() == maxZ) pos1 = pos1.add(0, 0, delta);
+                else pos2 = pos2.add(0, 0, delta);
+            }
+            case NORTH -> {
+                if (pos1.getZ() == minZ) pos1 = pos1.add(0, 0, -delta);
+                else pos2 = pos2.add(0, 0, -delta);
+            }
+        }
+
+        syncSelectionPoints();
+    }
+
+    public static void drawFaceQuad(MatrixStack matrices, VertexConsumer consumer, Direction dir, double x1, double y1, double z1, double x2, double y2, double z2, float r, float g, float b, float a) {
+        MatrixStack.Entry entry = matrices.peek();
+        switch (dir) {
+            case DOWN -> {
+                consumer.vertex(entry, (float)x1, (float)y1, (float)z1).color(r, g, b, a);
+                consumer.vertex(entry, (float)x2, (float)y1, (float)z1).color(r, g, b, a);
+                consumer.vertex(entry, (float)x2, (float)y1, (float)z2).color(r, g, b, a);
+                consumer.vertex(entry, (float)x1, (float)y1, (float)z2).color(r, g, b, a);
+            }
+            case UP -> {
+                consumer.vertex(entry, (float)x1, (float)y2, (float)z1).color(r, g, b, a);
+                consumer.vertex(entry, (float)x1, (float)y2, (float)z2).color(r, g, b, a);
+                consumer.vertex(entry, (float)x2, (float)y2, (float)z2).color(r, g, b, a);
+                consumer.vertex(entry, (float)x2, (float)y2, (float)z1).color(r, g, b, a);
+            }
+            case NORTH -> {
+                consumer.vertex(entry, (float)x1, (float)y1, (float)z1).color(r, g, b, a);
+                consumer.vertex(entry, (float)x1, (float)y2, (float)z1).color(r, g, b, a);
+                consumer.vertex(entry, (float)x2, (float)y2, (float)z1).color(r, g, b, a);
+                consumer.vertex(entry, (float)x2, (float)y1, (float)z1).color(r, g, b, a);
+            }
+            case SOUTH -> {
+                consumer.vertex(entry, (float)x1, (float)y1, (float)z2).color(r, g, b, a);
+                consumer.vertex(entry, (float)x2, (float)y1, (float)z2).color(r, g, b, a);
+                consumer.vertex(entry, (float)x2, (float)y2, (float)z2).color(r, g, b, a);
+                consumer.vertex(entry, (float)x1, (float)y2, (float)z2).color(r, g, b, a);
+            }
+            case WEST -> {
+                consumer.vertex(entry, (float)x1, (float)y1, (float)z1).color(r, g, b, a);
+                consumer.vertex(entry, (float)x1, (float)y1, (float)z2).color(r, g, b, a);
+                consumer.vertex(entry, (float)x1, (float)y2, (float)z2).color(r, g, b, a);
+                consumer.vertex(entry, (float)x1, (float)y2, (float)z1).color(r, g, b, a);
+            }
+            case EAST -> {
+                consumer.vertex(entry, (float)x2, (float)y1, (float)z1).color(r, g, b, a);
+                consumer.vertex(entry, (float)x2, (float)y2, (float)z1).color(r, g, b, a);
+                consumer.vertex(entry, (float)x2, (float)y2, (float)z2).color(r, g, b, a);
+                consumer.vertex(entry, (float)x2, (float)y1, (float)z2).color(r, g, b, a);
+            }
+        }
+    }
+
     public static void syncSelectionPoints() {
         if (currentSelectionMode == 0) {
             selectionPoints.clear();
@@ -255,10 +371,10 @@ public class MogDopSModClient {
         KeyMappingRegistry.register(openBlockSelectorKey);
         KeyMappingRegistry.register(openSchematicKey);
 
-        // 2. Регистрация рендереров сущностей через Architectury
+        // 2. Регистрация рендереров сущностей
         EntityRendererRegistry.register(MogDopSMod.IMAGE_DISPLAY_ENTITY, ImageDisplayEntityRenderer::new);
 
-        // 3. Тики клиента (Горячие клавиши)
+        // 3. Тики клиента
         ClientTickEvent.CLIENT_POST.register(client -> {
             notificationManager.update();
 

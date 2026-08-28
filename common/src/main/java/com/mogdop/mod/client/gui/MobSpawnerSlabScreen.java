@@ -1,6 +1,7 @@
 package com.mogdop.mod.client.gui;
 
 import com.mogdop.mod.network.UpdateMobSpawnerSlabPayload;
+import dev.architectury.networking.NetworkManager;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.Components;
 import io.wispforest.owo.ui.component.LabelComponent;
@@ -11,7 +12,6 @@ import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.ScrollContainer;
 import io.wispforest.owo.ui.core.*;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -38,7 +38,7 @@ public class MobSpawnerSlabScreen extends BaseOwoScreen<FlowLayout> {
     public MobSpawnerSlabScreen(BlockPos pos, String mobId, int intervalTicks, int maxMobs, boolean active, int spawnRange) {
         this.pos = pos;
         this.mobId = mobId;
-        this.intervalSeconds = intervalTicks / 20; // 20 тиков = 1 секунда
+        this.intervalSeconds = intervalTicks / 20;
         this.maxMobs = maxMobs;
         this.active = active;
         this.spawnRange = spawnRange;
@@ -69,11 +69,9 @@ public class MobSpawnerSlabScreen extends BaseOwoScreen<FlowLayout> {
         mainBox.padding(Insets.of(12));
         mainBox.gap(15);
 
-        // ЛЕВАЯ КОЛОНКА (Настройки параметров)
         FlowLayout leftCol = Containers.verticalFlow(Sizing.fixed(320), Sizing.content());
         leftCol.gap(10);
 
-        // 1. Тумблер активации (Active)
         FlowLayout activeRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
         activeRow.verticalAlignment(VerticalAlignment.CENTER);
         activeRow.gap(10);
@@ -87,7 +85,6 @@ public class MobSpawnerSlabScreen extends BaseOwoScreen<FlowLayout> {
         activeRow.child(activeCheck);
         leftCol.child(activeRow);
 
-        // 2. Текстовое поле ввода ID моба
         FlowLayout mobRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
         mobRow.verticalAlignment(VerticalAlignment.CENTER);
         mobRow.gap(10);
@@ -104,7 +101,6 @@ public class MobSpawnerSlabScreen extends BaseOwoScreen<FlowLayout> {
         mobRow.child(mobFieldRef);
         leftCol.child(mobRow);
 
-        // 3. Точный ввод секунд интервала со скролл-кнопками +/-
         FlowLayout intervalRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
         intervalRow.verticalAlignment(VerticalAlignment.CENTER);
         intervalRow.gap(10);
@@ -132,7 +128,6 @@ public class MobSpawnerSlabScreen extends BaseOwoScreen<FlowLayout> {
         intervalRow.child(decInt).child(intField).child(incInt);
         leftCol.child(intervalRow);
 
-        // 4. Ограничение количества мобов
         FlowLayout maxRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
         maxRow.verticalAlignment(VerticalAlignment.CENTER);
         maxRow.gap(10);
@@ -152,7 +147,6 @@ public class MobSpawnerSlabScreen extends BaseOwoScreen<FlowLayout> {
         maxRow.child(decMax).child(maxVal).child(incMax);
         leftCol.child(maxRow);
 
-        // 5. Разброс спавна мобов (Radius)
         FlowLayout rangeRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
         rangeRow.verticalAlignment(VerticalAlignment.CENTER);
         rangeRow.gap(10);
@@ -174,7 +168,6 @@ public class MobSpawnerSlabScreen extends BaseOwoScreen<FlowLayout> {
 
         mainBox.child(leftCol);
 
-        // ПРАВАЯ КОЛОНКА (3D Предпросмотр моба + Кнопка выбора шаблона)
         previewContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100));
         previewContainer.surface(Surface.flat(0xFF222222));
         previewContainer.padding(Insets.of(10));
@@ -185,14 +178,13 @@ public class MobSpawnerSlabScreen extends BaseOwoScreen<FlowLayout> {
 
         rootComponent.child(mainBox);
 
-        // КНОПКА СОХРАНЕНИЯ ВНИЗУ
         FlowLayout footer = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
         footer.horizontalAlignment(HorizontalAlignment.CENTER);
         footer.margins(Insets.top(15));
         footer.gap(20);
 
         FlowLayout saveBtn = createFlatButton(120, 24, Text.literal("Сохранить"), () -> {
-            ClientPlayNetworking.send(new UpdateMobSpawnerSlabPayload(pos, mobId, intervalSeconds * 20, maxMobs, active, spawnRange));
+            NetworkManager.sendToServer(new UpdateMobSpawnerSlabPayload(pos, mobId, intervalSeconds * 20, maxMobs, active, spawnRange));
             this.close();
         });
         footer.child(saveBtn);
@@ -201,10 +193,9 @@ public class MobSpawnerSlabScreen extends BaseOwoScreen<FlowLayout> {
         updatePreviewEntity();
     }
 
-    // Метод динамического рендера 3D модели выбранного моба
     private void updatePreviewEntity() {
         previewContainer.clearChildren();
-        
+
         Identifier id = Identifier.tryParse(this.mobId);
         if (id != null && Registries.ENTITY_TYPE.containsId(id)) {
             EntityType<?> type = Registries.ENTITY_TYPE.get(id);
@@ -218,8 +209,6 @@ public class MobSpawnerSlabScreen extends BaseOwoScreen<FlowLayout> {
                 entityComp.allowMouseRotation(true);
                 entityComp.lookAtCursor(true);
                 previewContainer.child(entityComp);
-                
-                // Отображаем локализованное имя под моделью
                 previewContainer.child(Components.label(type.getName()).margins(Insets.top(4)));
             } else {
                 previewContainer.child(Components.label(Text.literal("Ошибка загрузки")).color(Color.ofArgb(0xFFFF5555)));
@@ -228,33 +217,31 @@ public class MobSpawnerSlabScreen extends BaseOwoScreen<FlowLayout> {
             previewContainer.child(Components.label(Text.literal("Неизвестный моб")).color(Color.ofArgb(0xFFFF5555)));
         }
 
-        // Кнопка переключения в меню выбора шаблонов
         previewContainer.child(createFlatButton(130, 20, Text.literal("Выбрать моба"), this::openPresetSelection).margins(Insets.top(8)));
     }
 
-    // Окно выбора готовых популярных шаблонов мобов
     private void openPresetSelection() {
         previewContainer.clearChildren();
-        
+
         LabelComponent selectLabel = Components.label(Text.literal("Шаблоны:"));
         selectLabel.color(Color.ofArgb(0xFFFFAA00));
         previewContainer.child(selectLabel);
-        
+
         FlowLayout grid = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
         grid.gap(4);
         grid.margins(Insets.top(5));
-        
+
         String[][] presets = {
-            {"Zombie", "minecraft:zombie"},
-            {"Skeleton", "minecraft:skeleton"},
-            {"Creeper", "minecraft:creeper"},
-            {"Spider", "minecraft:spider"},
-            {"Cow", "minecraft:cow"},
-            {"Sheep", "minecraft:sheep"},
-            {"Pig", "minecraft:pig"},
-            {"Chicken", "minecraft:chicken"}
+                {"Zombie", "minecraft:zombie"},
+                {"Skeleton", "minecraft:skeleton"},
+                {"Creeper", "minecraft:creeper"},
+                {"Spider", "minecraft:spider"},
+                {"Cow", "minecraft:cow"},
+                {"Sheep", "minecraft:sheep"},
+                {"Pig", "minecraft:pig"},
+                {"Chicken", "minecraft:chicken"}
         };
-        
+
         for (String[] preset : presets) {
             grid.child(createFlatButton(130, 16, Text.literal(preset[0]), () -> {
                 this.mobId = preset[1];
@@ -262,10 +249,10 @@ public class MobSpawnerSlabScreen extends BaseOwoScreen<FlowLayout> {
                 updatePreviewEntity();
             }));
         }
-        
+
         ScrollContainer<FlowLayout> presetScroll = Containers.verticalScroll(Sizing.fill(100), Sizing.fixed(120), grid);
         previewContainer.child(presetScroll);
-        
+
         previewContainer.child(createFlatButton(130, 20, Text.literal("Назад"), this::updatePreviewEntity).margins(Insets.top(10)));
     }
 
@@ -275,7 +262,7 @@ public class MobSpawnerSlabScreen extends BaseOwoScreen<FlowLayout> {
         btn.cursorStyle(CursorStyle.HAND);
         btn.horizontalAlignment(HorizontalAlignment.CENTER);
         btn.verticalAlignment(VerticalAlignment.CENTER);
-        
+
         LabelComponent lbl = Components.label(text);
         lbl.color(Color.ofArgb(0xFFFFFFFF));
         btn.child(lbl);

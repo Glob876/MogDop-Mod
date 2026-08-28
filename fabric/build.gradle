@@ -1,5 +1,7 @@
 plugins {
-    id "com.github.johnrengelman.shadow" version "8.1.1" apply false
+    id "dev.architectury.loom"
+    id "architectury-plugin"
+    id "com.github.johnrengelman.shadow"
 }
 
 architectury {
@@ -7,25 +9,28 @@ architectury {
     fabric()
 }
 
+loom {
+    silentMojangMappingsLicense()
+}
+
 configurations {
-    common {
-        canBeResolved = true
-        canBeConsumed = false
-    }
+    common
+    shadowCommon
     compileClasspath.extendsFrom common
     runtimeClasspath.extendsFrom common
     developmentFabric.extendsFrom common
 }
 
 dependencies {
+    minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
+    mappings "net.fabricmc:yarn:${rootProject.yarn_mappings}:v2"
+
     modImplementation "net.fabricmc:fabric-loader:${rootProject.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}"
-    modImplementation "dev.architectury:architectury-fabric:${rootProject.architectury_version}"
 
     common(project(path: ":common", configuration: "namedElements")) { transitive false }
-    shadowBundle project(path: ":common", configuration: "transformProductionFabric")
+    shadowCommon(project(path: ":common", configuration: "transformProductionFabric")) { transitive = false }
 
-    // Локальные моды и библиотеки из папки libs
     modImplementation fileTree(dir: "${rootProject.projectDir}/libs", include: ['*.jar'])
     annotationProcessor fileTree(dir: "${rootProject.projectDir}/libs", include: ['*.jar'])
 
@@ -38,8 +43,18 @@ dependencies {
 
 processResources {
     inputs.property "version", project.version
-
     filesMatching("fabric.mod.json") {
         expand "version": project.version
     }
+}
+
+shadowJar {
+    configurations = [project.configurations.shadowCommon]
+    archiveClassifier = "dev-shadow"
+}
+
+remapJar {
+    input.set shadowJar.archiveFile
+    dependsOn shadowJar
+    archiveClassifier = null
 }

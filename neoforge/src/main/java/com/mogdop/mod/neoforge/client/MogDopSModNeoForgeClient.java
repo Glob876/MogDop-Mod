@@ -1,8 +1,10 @@
 package com.mogdop.mod.neoforge.client;
 
 import com.mogdop.mod.client.MogDopSModClient;
+import com.mogdop.mod.client.gui.ChatNotificationHud;
 import com.mogdop.mod.client.gui.ImageSelectorScreen;
 import com.mogdop.mod.client.gui.SchematicScreen;
+import com.mogdop.mod.client.gui.SelectionAxeHud;
 import com.mogdop.mod.network.SpawnEntityPayload;
 import com.mogdop.mod.network.ToolActionPayload;
 import dev.architectury.networking.NetworkManager;
@@ -20,6 +22,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
@@ -28,18 +31,26 @@ import java.util.Locale;
 
 public class MogDopSModNeoForgeClient {
 
+    private static final SelectionAxeHud SELECTION_AXE_HUD = new SelectionAxeHud();
+    private static final ChatNotificationHud CHAT_NOTIFICATION_HUD = new ChatNotificationHud();
+
     public static void init(IEventBus modEventBus) {
-        // 1. Инициализация общих клиентских систем (клавиши, тики, рендереры)
+        // 1. Инициализация общих клиентских систем
         MogDopSModClient.initClient();
 
-        // 2. Регистрация слушателей событий в шине NeoForge
+        // 2. Регистрация слушателей NeoForge
         NeoForge.EVENT_BUS.addListener(MogDopSModNeoForgeClient::onLeftClickBlock);
         NeoForge.EVENT_BUS.addListener(MogDopSModNeoForgeClient::onRightClickBlock);
         NeoForge.EVENT_BUS.addListener(MogDopSModNeoForgeClient::onRightClickItem);
         NeoForge.EVENT_BUS.addListener(MogDopSModNeoForgeClient::onRenderLevelStage);
+        NeoForge.EVENT_BUS.addListener(MogDopSModNeoForgeClient::onRenderGui);
     }
 
-    // Обработка ЛКМ по блоку
+    private static void onRenderGui(RenderGuiEvent.Post event) {
+        SELECTION_AXE_HUD.render(event.getGuiGraphics(), event.getPartialTick());
+        CHAT_NOTIFICATION_HUD.render(event.getGuiGraphics(), event.getPartialTick());
+    }
+
     private static void onLeftClickBlock(PlayerInteractEvent.LeftClickBlock event) {
         if (!event.getLevel().isClient()) return;
         MinecraftClient client = MinecraftClient.getInstance();
@@ -90,7 +101,6 @@ public class MogDopSModNeoForgeClient {
         }
     }
 
-    // Обработка ПКМ по блоку
     private static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
         if (!event.getLevel().isClient()) return;
         MinecraftClient client = MinecraftClient.getInstance();
@@ -146,7 +156,6 @@ public class MogDopSModNeoForgeClient {
         }
     }
 
-    // Обработка клика в воздух / на дистанции
     private static void onRightClickItem(PlayerInteractEvent.RightClickItem event) {
         if (!event.getLevel().isClient()) return;
         MinecraftClient client = MinecraftClient.getInstance();
@@ -182,7 +191,6 @@ public class MogDopSModNeoForgeClient {
         }
     }
 
-    // 3D Рендеринг выделения в мире через NeoForge RenderLevelStageEvent
     private static void onRenderLevelStage(RenderLevelStageEvent event) {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) return;
 
@@ -341,7 +349,33 @@ public class MogDopSModNeoForgeClient {
             matrices.pop();
         }
 
-        // 4. Режим предпросмотра схематики
+        // 4. Режим Выпуклого тела
+        if (MogDopSModClient.currentToolMode == 0 && MogDopSModClient.currentSelectionMode == 2 && !MogDopSModClient.selectionPoints.isEmpty()) {
+            matrices.push();
+            matrices.translate(-camPos.x, -camPos.y, -camPos.z);
+
+            int n = MogDopSModClient.selectionPoints.size();
+            VertexConsumer linesConsumer = consumers.getBuffer(MogDopSModClient.SELECTION_LINES);
+            for (int i = 0; i < n; i++) {
+                BlockPos p = MogDopSModClient.selectionPoints.get(i);
+                WorldRenderer.drawBox(matrices, linesConsumer, p.getX(), p.getY(), p.getZ(), p.getX() + 1.0, p.getY() + 1.0, p.getZ() + 1.0, 1.0F, 0.3F, 0.8F, 1.0F);
+
+                if (i > 0) {
+                    BlockPos prev = MogDopSModClient.selectionPoints.get(i - 1);
+                    linesConsumer.vertex(matrices.peek(), (float)(prev.getX() + 0.5), (float)(prev.getY() + 0.5), (float)(prev.getZ() + 0.5)).color(0F, 1F, 1F, 1F).normal(0, 1, 0);
+                    linesConsumer.vertex(matrices.peek(), (float)(p.getX() + 0.5), (float)(p.getY() + 0.5), (float)(p.getZ() + 0.5)).color(0F, 1F, 1F, 1F).normal(0, 1, 0);
+                }
+                if (i == n - 1 && n >= 3) {
+                    BlockPos first = MogDopSModClient.selectionPoints.get(0);
+                    linesConsumer.vertex(matrices.peek(), (float)(p.getX() + 0.5), (float)(p.getY() + 0.5), (float)(p.getZ() + 0.5)).color(0F, 1F, 1F, 1F).normal(0, 1, 0);
+                    linesConsumer.vertex(matrices.peek(), (float)(first.getX() + 0.5), (float)(first.getY() + 0.5), (float)(first.getZ() + 0.5)).color(0F, 1F, 1F, 1F).normal(0, 1, 0);
+                }
+            }
+
+            matrices.pop();
+        }
+
+        // 5. Режим предпросмотра схематики
         if (MogDopSModClient.schematicPreviewActive && client.crosshairTarget != null && client.crosshairTarget.getType() == HitResult.Type.BLOCK) {
             BlockPos target = ((BlockHitResult) client.crosshairTarget).getBlockPos().offset(((BlockHitResult) client.crosshairTarget).getSide());
             matrices.push();

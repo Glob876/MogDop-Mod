@@ -2,6 +2,7 @@ package com.mogdop.mod.client.gui;
 
 import com.mogdop.mod.client.MogDopSModClient;
 import com.mogdop.mod.network.*;
+import dev.architectury.networking.NetworkManager;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.CheckboxComponent;
 import io.wispforest.owo.ui.component.Components;
@@ -11,7 +12,6 @@ import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.ScrollContainer;
 import io.wispforest.owo.ui.core.*;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.text.Text;
@@ -44,19 +44,16 @@ public class SchematicScreen extends BaseOwoScreen<FlowLayout> {
         rootComponent.verticalAlignment(VerticalAlignment.CENTER);
         rootComponent.padding(Insets.of(15));
 
-        // 1. Заголовок экрана
         LabelComponent title = Components.label(Text.translatable("mogdops-mod.schematic.title"));
         title.color(Color.ofArgb(0xFF00C8FF));
         title.margins(Insets.bottom(12));
         rootComponent.child(title);
 
-        // 2. Главный бокс (520x220px)
         FlowLayout mainBox = Containers.horizontalFlow(Sizing.fixed(520), Sizing.fixed(220));
         mainBox.surface(Surface.flat(0xFA1A1A1A));
         mainBox.padding(Insets.of(10));
         mainBox.gap(15);
 
-        // ================= ЛЕВАЯ КОЛОНКА (Управление буфером обмена и сохранение) =================
         FlowLayout leftCol = Containers.verticalFlow(Sizing.fixed(235), Sizing.fill(100));
         leftCol.gap(8);
 
@@ -72,7 +69,7 @@ public class SchematicScreen extends BaseOwoScreen<FlowLayout> {
         FlowLayout saveBtn = createFlatButton(95, 20, Text.translatable("mogdops-mod.schematic.btn_save"), () -> {
             String name = saveNameBox.getText().trim();
             if (!name.isEmpty()) {
-                ClientPlayNetworking.send(new SaveSchematicPayload(
+                NetworkManager.sendToServer(new SaveSchematicPayload(
                         name,
                         MogDopSModClient.getSelectionPoints(),
                         MogDopSModClient.currentSelectionMode
@@ -88,7 +85,7 @@ public class SchematicScreen extends BaseOwoScreen<FlowLayout> {
         transformRow.gap(8);
 
         FlowLayout rot90Btn = createFlatButton(105, 22, Text.translatable("mogdops-mod.schematic.btn_rot90"), () -> {
-            ClientPlayNetworking.send(new RotateClipboardPayload(90));
+            NetworkManager.sendToServer(new RotateClipboardPayload(90));
             if (MogDopSModClient.schematicPreviewActive) {
                 int tmp = MogDopSModClient.schematicSizeX;
                 MogDopSModClient.schematicSizeX = MogDopSModClient.schematicSizeZ;
@@ -96,7 +93,7 @@ public class SchematicScreen extends BaseOwoScreen<FlowLayout> {
             }
         });
         FlowLayout rot180Btn = createFlatButton(105, 22, Text.translatable("mogdops-mod.schematic.btn_rot180"), () -> {
-            ClientPlayNetworking.send(new RotateClipboardPayload(180));
+            NetworkManager.sendToServer(new RotateClipboardPayload(180));
         });
         transformRow.child(rot90Btn).child(rot180Btn);
         leftCol.child(transformRow);
@@ -111,7 +108,7 @@ public class SchematicScreen extends BaseOwoScreen<FlowLayout> {
         leftCol.child(airRow.margins(Insets.top(4)));
 
         FlowLayout pasteBtn = createFlatButton(220, 26, Text.translatable("mogdops-mod.schematic.btn_paste"), () -> {
-            ClientPlayNetworking.send(new PasteClipboardPayload(ignoreAirCheck.isChecked()));
+            NetworkManager.sendToServer(new PasteClipboardPayload(ignoreAirCheck.isChecked()));
             this.close();
         });
         pasteBtn.surface(Surface.flat(0xFF00AA00));
@@ -119,7 +116,6 @@ public class SchematicScreen extends BaseOwoScreen<FlowLayout> {
 
         mainBox.child(leftCol);
 
-        // ================= ПРАВАЯ КОЛОНКА (Обзор файлов схематик) =================
         FlowLayout rightCol = Containers.verticalFlow(Sizing.fixed(250), Sizing.fill(100));
         rightCol.surface(Surface.flat(0xFF222222));
         rightCol.padding(Insets.of(8));
@@ -130,7 +126,7 @@ public class SchematicScreen extends BaseOwoScreen<FlowLayout> {
         rightHeader.child(Components.label(Text.translatable("mogdops-mod.schematic.browser_title")).color(Color.ofArgb(0xFF00C8FF)));
 
         FlowLayout refreshBtn = createFlatButton(20, 16, Text.literal("↺"), () -> {
-            ClientPlayNetworking.send(new RequestSchematicsListPayload());
+            NetworkManager.sendToServer(new RequestSchematicsListPayload());
         });
         rightHeader.child(refreshBtn.margins(Insets.left(10)));
         rightCol.child(rightHeader);
@@ -145,8 +141,7 @@ public class SchematicScreen extends BaseOwoScreen<FlowLayout> {
         mainBox.child(rightCol);
         rootComponent.child(mainBox);
 
-        // Запрашиваем актуальный список схематик с сервера при открытии
-        ClientPlayNetworking.send(new RequestSchematicsListPayload());
+        NetworkManager.sendToServer(new RequestSchematicsListPayload());
         rebuildFilesUI();
     }
 
@@ -174,7 +169,7 @@ public class SchematicScreen extends BaseOwoScreen<FlowLayout> {
             row.child(nameLbl);
 
             FlowLayout loadBtn = createFlatButton(40, 16, Text.translatable("mogdops-mod.schematic.btn_load"), () -> {
-                ClientPlayNetworking.send(new LoadSchematicPayload(filename));
+                NetworkManager.sendToServer(new LoadSchematicPayload(filename));
                 this.close();
             });
             row.child(loadBtn);

@@ -2,7 +2,7 @@ package com.mogdop.mod;
 
 import com.mogdop.mod.network.OpenMobSpawnerSlabScreenPayload;
 import com.mojang.serialization.MapCodec;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import dev.architectury.networking.NetworkManager;
 import net.minecraft.block.*;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityTicker;
@@ -19,10 +19,8 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
 public class MobSpawnerSlabBlock extends BlockWithEntity {
-    
+
     public static final MapCodec<MobSpawnerSlabBlock> CODEC = createCodec(MobSpawnerSlabBlock::new);
-    
-    // Форма полукаменной плиты в нижней половине блока для выделения взглядом
     private static final VoxelShape SHAPE = Block.createCuboidShape(0.0D, 0.0D, 0.0D, 16.0D, 8.0D, 16.0D);
 
     public MobSpawnerSlabBlock(Settings settings) {
@@ -44,13 +42,11 @@ public class MobSpawnerSlabBlock extends BlockWithEntity {
         return SHAPE;
     }
 
-    // Делаем блок полностью проходимым (без физической коллизии)
     @Override
     public VoxelShape getCollisionShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
         return VoxelShapes.empty();
     }
 
-    // Создаем экземпляр BlockEntity для спавнера
     @Override
     public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
         return new MobSpawnerSlabBlockEntity(pos, state);
@@ -61,8 +57,7 @@ public class MobSpawnerSlabBlock extends BlockWithEntity {
         if (!world.isClient()) {
             BlockEntity be = world.getBlockEntity(pos);
             if (be instanceof MobSpawnerSlabBlockEntity slabBe) {
-                // Отсылаем сетевой S2C пакет клиенту для открытия экрана на его стороне
-                ServerPlayNetworking.send((ServerPlayerEntity) player, new OpenMobSpawnerSlabScreenPayload(
+                NetworkManager.sendToPlayer((ServerPlayerEntity) player, new OpenMobSpawnerSlabScreenPayload(
                         pos, slabBe.getMobId(), slabBe.getSpawnInterval(), slabBe.getMaxMobs(), slabBe.isActive(), slabBe.getSpawnRange()
                 ));
             }
@@ -73,6 +68,6 @@ public class MobSpawnerSlabBlock extends BlockWithEntity {
     @Nullable
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(World world, BlockState state, BlockEntityType<T> type) {
-        return validateTicker(type, MogDopSMod.MOB_SPAWNER_SLAB_ENTITY, MobSpawnerSlabBlockEntity::tick);
+        return validateTicker(type, MogDopSMod.MOB_SPAWNER_SLAB_ENTITY.get(), MobSpawnerSlabBlockEntity::tick);
     }
 }

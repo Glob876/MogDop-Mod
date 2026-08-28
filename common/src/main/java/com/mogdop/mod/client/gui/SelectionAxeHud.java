@@ -1,7 +1,6 @@
 package com.mogdop.mod.client.gui;
 
 import com.mogdop.mod.client.MogDopSModClient;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
@@ -13,13 +12,12 @@ import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
-public class SelectionAxeHud implements HudRenderCallback {
+public class SelectionAxeHud {
 
     private static Entity hudMobEntity = null;
     private static String lastHudMobId = "";
 
-    @Override
-    public void onHudRender(DrawContext drawContext, RenderTickCounter tickCounter) {
+    public void render(DrawContext drawContext, RenderTickCounter tickCounter) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null || client.world == null) return;
         if (client.currentScreen != null) return;
@@ -100,6 +98,7 @@ public class SelectionAxeHud implements HudRenderCallback {
             else if (MogDopSModClient.currentToolMode == 3) descKey = "mogdops-mod.tool_selector.mode.teleport.desc";
             else if (MogDopSModClient.currentToolMode == 4) descKey = "mogdops-mod.tool_selector.mode.spawner.desc";
             else if (MogDopSModClient.currentToolMode == 5) descKey = "mogdops-mod.tool_selector.mode.schematics.desc";
+            else if (MogDopSModClient.currentToolMode == 6) descKey = "mogdops-mod.tool_selector.mode.image.desc";
             String briefDesc = Text.translatable(descKey).getString();
 
             drawContext.drawTextWithShadow(client.textRenderer, Text.translatable("mogdops-mod.hud.multitool"), trX + 8, trY + 6, 0xFFFFAA00);

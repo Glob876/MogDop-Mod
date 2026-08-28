@@ -4,7 +4,6 @@ import com.mogdop.mod.MogDopSMod;
 import io.wispforest.owo.ui.base.BaseComponent;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.Components;
-import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.ScrollContainer;
@@ -101,7 +100,6 @@ public class WelcomeScreen extends BaseOwoScreen<FlowLayout> {
         }
     }
 
-    // Компонент текста с автопереносом строк под фиксированную ширину карточки
     public static class SmallWrappedTextComponent extends BaseComponent {
         private final float scale;
         private final int color;
@@ -173,11 +171,11 @@ public class WelcomeScreen extends BaseOwoScreen<FlowLayout> {
                 )
         ));
 
-        // Страница 2: Топор-Мультитул
+        // Страница 2: Творческий Посох
         pages.add(new WelcomePage(
                 "mogdops-mod.welcome.page2.title",
                 "mogdops-mod.welcome.page2.category",
-                Items.IRON_AXE,
+                MogDopSMod.STAFF.get(),
                 List.of(
                         "mogdops-mod.welcome.page2.text1",
                         "mogdops-mod.welcome.page2.text2",
@@ -239,7 +237,7 @@ public class WelcomeScreen extends BaseOwoScreen<FlowLayout> {
         pages.add(new WelcomePage(
                 "mogdops-mod.welcome.page7.title",
                 "mogdops-mod.welcome.page7.category",
-                MogDopSMod.MOB_SPAWNER_SLAB.asItem(),
+                MogDopSMod.MOB_SPAWNER_SLAB_ITEM.get(),
                 List.of(
                         "mogdops-mod.welcome.page7.text1",
                         "mogdops-mod.welcome.page7.text2",
@@ -263,12 +261,10 @@ public class WelcomeScreen extends BaseOwoScreen<FlowLayout> {
         rootComponent.verticalAlignment(VerticalAlignment.CENTER);
         rootComponent.padding(Insets.of(6));
 
-        // 1. Главный заголовок
         SmallLabelComponent title = smallLabel(Text.translatable("mogdops-mod.welcome.main_title"), 0.85f, 0xFF00C8FF);
         title.margins(Insets.bottom(4));
         rootComponent.child(title);
 
-        // 2. Компактная карточка страницы (380x140px)
         FlowLayout mainBox = Containers.horizontalFlow(Sizing.fixed(380), Sizing.fixed(140));
         mainBox.surface(Surface.flat(0xFA1A1A1A));
         mainBox.padding(Insets.of(6));
@@ -277,7 +273,6 @@ public class WelcomeScreen extends BaseOwoScreen<FlowLayout> {
         mainBox.child(pageContentWrapper);
         rootComponent.child(mainBox);
 
-        // 3. Нижняя панель навигации (380px)
         FlowLayout navBar = Containers.horizontalFlow(Sizing.fixed(380), Sizing.fixed(20));
         navBar.verticalAlignment(VerticalAlignment.CENTER);
         navBar.margins(Insets.top(6));
@@ -317,7 +312,6 @@ public class WelcomeScreen extends BaseOwoScreen<FlowLayout> {
 
         WelcomePage page = pages.get(currentPage);
 
-        // Левая колонка (Иконка + Категория)
         FlowLayout leftCol = Containers.verticalFlow(Sizing.fixed(90), Sizing.fill(100));
         leftCol.surface(Surface.flat(0xFF222222));
         leftCol.padding(Insets.of(6));
@@ -337,7 +331,6 @@ public class WelcomeScreen extends BaseOwoScreen<FlowLayout> {
 
         pageContentWrapper.child(leftCol);
 
-        // Правая колонка
         FlowLayout rightCol = Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100));
         rightCol.padding(Insets.of(2, 2, 8, 2));
         rightCol.gap(4);
@@ -362,7 +355,6 @@ public class WelcomeScreen extends BaseOwoScreen<FlowLayout> {
 
         pageContentWrapper.child(rightCol);
 
-        // Обновление текста индикаторов
         if (pageIndicatorLabel != null) {
             pageIndicatorLabel.text(Text.translatable("mogdops-mod.welcome.page_count", (currentPage + 1), pages.size()));
         }

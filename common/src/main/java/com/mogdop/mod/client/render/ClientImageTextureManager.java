@@ -1,6 +1,6 @@
 package com.mogdop.mod.client.render;
 
-import net.fabricmc.loader.api.FabricLoader;
+import dev.architectury.platform.Platform;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
@@ -38,7 +38,7 @@ public class ClientImageTextureManager {
             return TEXTURE_CACHE.get(fileName);
         }
 
-        File folder = FabricLoader.getInstance().getConfigDir().resolve("pics").toFile();
+        File folder = Platform.getConfigFolder().resolve("pics").toFile();
         if (!folder.exists()) folder.mkdirs();
 
         File file = new File(folder, fileName);
@@ -46,14 +46,10 @@ public class ClientImageTextureManager {
 
         NativeImage image = null;
 
-        // 1. Попытка прямой быстрой загрузки через нативный STB загрузчик Minecraft
         try (InputStream in = new FileInputStream(file)) {
             image = NativeImage.read(in);
-        } catch (Exception ignored) {
-            // STB не поддерживает Progressive JPEG и некоторые варианты JPG
-        }
+        } catch (Exception ignored) {}
 
-        // 2. Универсальный декодер через ImageIO (поддерживает любые Progressive JPEG, JPG, BMP и т.д.)
         if (image == null) {
             try {
                 BufferedImage bImg = ImageIO.read(file);

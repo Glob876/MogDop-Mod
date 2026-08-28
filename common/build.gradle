@@ -1,10 +1,22 @@
+plugins {
+    id "dev.architectury.loom"
+    id "architectury-plugin"
+}
+
 architectury {
-    common(rootProject.findProperty("enabled_platforms") ?: "fabric,neoforge")
+    common("fabric", "neoforge")
+}
+
+loom {
+    silentMojangMappingsLicense()
 }
 
 dependencies {
-    // 100% ЛОКАЛЬНАЯ ЗАГРУЗКА ИЗ ПАПКИ libs:
-    // Все моды и библиотеки (architectury, owo-lib, worldedit, modmenu, endec, jankson) берутся с диска
+    minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
+    mappings "net.fabricmc:yarn:${rootProject.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+
+    // 100% локальные моды и библиотеки из libs/
     modImplementation fileTree(dir: "${rootProject.projectDir}/libs", include: ['*.jar'])
     annotationProcessor fileTree(dir: "${rootProject.projectDir}/libs", include: ['*.jar'])
 

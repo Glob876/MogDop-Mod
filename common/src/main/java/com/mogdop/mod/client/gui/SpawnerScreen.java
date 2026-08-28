@@ -4,6 +4,7 @@ import com.mogdop.mod.MogDopSMod;
 import com.mogdop.mod.client.MogDopSModClient;
 import com.mogdop.mod.network.*;
 import com.mojang.blaze3d.systems.RenderSystem;
+import dev.architectury.networking.NetworkManager;
 import io.wispforest.owo.ui.base.BaseComponent;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.CheckboxComponent;
@@ -15,7 +16,6 @@ import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.ScrollContainer;
 import io.wispforest.owo.ui.core.*;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -559,7 +559,7 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
                 icon.allowMouseRotation(true); icon.lookAtCursor(true);
 
                 Component card = createCard(icon, name, () -> {
-                    ClientPlayNetworking.send(new SpawnEntityPayload(Registries.ENTITY_TYPE.getId(type).toString(), "", false, false, false, false, false, 0, 0));
+                    NetworkManager.sendToServer(new SpawnEntityPayload(Registries.ENTITY_TYPE.getId(type).toString(), "", false, false, false, false, false, 0, 0));
                     SpawnerScreen.this.triggerSpawnEffect();
                 }, (clickedCard) -> {
                     configuringMob = type;
@@ -637,7 +637,7 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
             }
 
             rightCol.child(createFlatButton(160, 20, Text.translatable("mogdops-mod.mob_editor.spawn_click"), () -> {
-                ClientPlayNetworking.send(new SpawnEntityPayload(
+                NetworkManager.sendToServer(new SpawnEntityPayload(
                         Registries.ENTITY_TYPE.getId(configuringMob).toString(),
                         mobCustomName, mobNameVisible, mobNoGravity, mobSilent, mobGlowing, mobIsBaby, mobSlimeSize, mobFireTicks
                 ));
@@ -690,11 +690,11 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
             int itemsInRow = 0;
             int maxPerRow = 7;
 
-            // Собираем список всех предметов, помещая Творческий посох в самое начало
+            // Собираем список предметов, помещая Творческий посох в самое начало
             List<Item> itemList = new ArrayList<>();
-            itemList.add(MogDopSMod.STAFF);
+            itemList.add(MogDopSMod.STAFF.get());
             for (Item item : Registries.ITEM) {
-                if (item != MogDopSMod.STAFF && !(item instanceof BlockItem)) {
+                if (item != MogDopSMod.STAFF.get() && !(item instanceof BlockItem)) {
                     itemList.add(item);
                 }
             }
@@ -763,7 +763,7 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
                 int count = 1;
                 try { count = Integer.parseInt(itemCountText); } catch (Exception ignored) {}
                 ItemStack finalStack = new ItemStack(configuringItem, count);
-                ClientPlayNetworking.send(new GiveItemPayload(finalStack));
+                NetworkManager.sendToServer(new GiveItemPayload(finalStack));
                 SpawnerScreen.this.triggerSpawnEffect();
                 if (MinecraftClient.getInstance().player != null) {
                     MinecraftClient.getInstance().player.sendMessage(Text.literal("§a[MogDop] Выдано: " + configuringItem.getName().getString() + " x" + count), true);
@@ -789,13 +789,12 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
             FlowLayout weRow = Containers.horizontalFlow(Sizing.content(), Sizing.content());
             weRow.gap(6);
 
-            // Использование Творческого Посоха (MogDopSMod.STAFF) вместо топора
-            ItemStack staff = new ItemStack(MogDopSMod.STAFF);
+            ItemStack staff = new ItemStack(MogDopSMod.STAFF.get());
             staff.set(DataComponentTypes.CUSTOM_NAME, Text.translatable("item.mogdops-mod.staff"));
             staff.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
 
             weRow.child(createCard(Components.item(staff), Text.translatable("mogdops-mod.worldedit.get_staff").getString(), () -> {
-                ClientPlayNetworking.send(new GiveItemPayload(staff));
+                NetworkManager.sendToServer(new GiveItemPayload(staff));
                 SpawnerScreen.this.triggerSpawnEffect();
                 if (MinecraftClient.getInstance().player != null) {
                     MinecraftClient.getInstance().player.sendMessage(Text.literal("§a[MogDop] Творческий Посох добавлен в инвентарь!"), true);
@@ -808,18 +807,18 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
                     if (client.player != null) client.player.sendMessage(Text.translatable("mogdops-mod.error.positions_not_set"), false);
                 } else {
                     String blockId = Registries.BLOCK.getId(MogDopSModClient.activeBlock).toString();
-                    ClientPlayNetworking.send(new FillAreaPayload(MogDopSModClient.getSelectionPoints(), MogDopSModClient.currentSelectionMode, blockId));
+                    NetworkManager.sendToServer(new FillAreaPayload(MogDopSModClient.getSelectionPoints(), MogDopSModClient.currentSelectionMode, blockId));
                     SpawnerScreen.this.triggerSpawnEffect();
                 }
             }, null));
 
             weRow.child(createCard(Components.item(new ItemStack(Items.FEATHER)), Text.translatable("mogdops-mod.worldedit.undo").getString(), () -> {
-                ClientPlayNetworking.send(new UndoPayload());
+                NetworkManager.sendToServer(new UndoPayload());
                 SpawnerScreen.this.triggerSpawnEffect();
             }, null));
 
             weRow.child(createCard(Components.item(new ItemStack(Items.GUNPOWDER)), Text.translatable("mogdops-mod.worldedit.redo").getString(), () -> {
-                ClientPlayNetworking.send(new RedoPayload());
+                NetworkManager.sendToServer(new RedoPayload());
                 SpawnerScreen.this.triggerSpawnEffect();
             }, null));
 
@@ -829,11 +828,11 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
             FlowLayout cheatRow = Containers.horizontalFlow(Sizing.content(), Sizing.content());
             cheatRow.gap(6);
 
-            cheatRow.child(createCard(Components.item(new ItemStack(Items.SUNFLOWER)), Text.translatable("mogdops-mod.world.day").getString(), () -> ClientPlayNetworking.send(new WorldActionPayload("DAY")), null));
-            cheatRow.child(createCard(Components.item(new ItemStack(Items.COAL)), Text.translatable("mogdops-mod.world.night").getString(), () -> ClientPlayNetworking.send(new WorldActionPayload("NIGHT")), null));
-            cheatRow.child(createCard(Components.item(new ItemStack(Items.FEATHER)), Text.translatable("mogdops-mod.player.fly").getString(), () -> ClientPlayNetworking.send(new PlayerActionPayload("FLY")), null));
-            cheatRow.child(createCard(Components.item(new ItemStack(Items.SUGAR)), Text.translatable("mogdops-mod.player.speed").getString(), () -> ClientPlayNetworking.send(new PlayerActionPayload("SPEED")), null));
-            cheatRow.child(createCard(Components.item(new ItemStack(Items.MILK_BUCKET)), Text.translatable("mogdops-mod.player.clear").getString(), () -> ClientPlayNetworking.send(new PlayerActionPayload("CLEAR")), null));
+            cheatRow.child(createCard(Components.item(new ItemStack(Items.SUNFLOWER)), Text.translatable("mogdops-mod.world.day").getString(), () -> NetworkManager.sendToServer(new WorldActionPayload("DAY")), null));
+            cheatRow.child(createCard(Components.item(new ItemStack(Items.COAL)), Text.translatable("mogdops-mod.world.night").getString(), () -> NetworkManager.sendToServer(new WorldActionPayload("NIGHT")), null));
+            cheatRow.child(createCard(Components.item(new ItemStack(Items.FEATHER)), Text.translatable("mogdops-mod.player.fly").getString(), () -> NetworkManager.sendToServer(new PlayerActionPayload("FLY")), null));
+            cheatRow.child(createCard(Components.item(new ItemStack(Items.SUGAR)), Text.translatable("mogdops-mod.player.speed").getString(), () -> NetworkManager.sendToServer(new PlayerActionPayload("SPEED")), null));
+            cheatRow.child(createCard(Components.item(new ItemStack(Items.MILK_BUCKET)), Text.translatable("mogdops-mod.player.clear").getString(), () -> NetworkManager.sendToServer(new PlayerActionPayload("CLEAR")), null));
 
             grid.child(cheatRow);
 
@@ -899,16 +898,13 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
             contentCol.gap(6);
             contentCol.padding(Insets.of(4));
 
-            // Заголовок
             contentCol.child(smallLabel(Text.translatable("text.config.mogdops-mod"), 0.85f, 0xFFFFAA00));
 
-            // Кнопка руководства
             FlowLayout guideBtn = createFlatButton(200, 20, Text.translatable("text.config.mogdops-mod.open_guide"), () -> {
                 MinecraftClient.getInstance().setScreen(new WelcomeScreen());
             });
             contentCol.child(guideBtn.margins(Insets.bottom(4)));
 
-            // Переключатели
             contentCol.child(createToggleRow("text.config.mogdops-mod.option.hideChatHUD",
                     MogDopSModClient.CONFIG.hideChatHUD(), true, MogDopSModClient.CONFIG::hideChatHUD));
 
@@ -927,7 +923,6 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
             contentCol.child(createToggleRow("text.config.mogdops-mod.option.toolExplosionFire",
                     MogDopSModClient.CONFIG.toolExplosionFire(), false, MogDopSModClient.CONFIG::toolExplosionFire));
 
-            // Числовые параметры
             FlowLayout radiusRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
             radiusRow.verticalAlignment(VerticalAlignment.CENTER);
             radiusRow.gap(6);
@@ -970,7 +965,6 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
             powerRow.child(decPow).child(powVal).child(incPow);
             contentCol.child(powerRow);
 
-            // Настройка цвета выделения
             FlowLayout colorRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
             colorRow.verticalAlignment(VerticalAlignment.CENTER);
             colorRow.gap(6);
@@ -995,7 +989,6 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
             colorRow.child(resetColorBtn);
             contentCol.child(colorRow);
 
-            // Color Picker и палитра
             FlowLayout paletteBox = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
             paletteBox.gap(4);
 
@@ -1037,7 +1030,6 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
             paletteBox.child(paletteRow);
             contentCol.child(paletteBox);
 
-            // Кнопка сохранения
             FlowLayout saveBtn = createFlatButton(140, 20, Text.translatable("text.config.mogdops-mod.save"), () -> {
                 MogDopSModClient.CONFIG.save();
                 if (SpawnerScreen.this.parent != null) {

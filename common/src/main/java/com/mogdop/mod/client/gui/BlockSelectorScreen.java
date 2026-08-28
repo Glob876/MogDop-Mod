@@ -5,6 +5,7 @@ import com.mogdop.mod.client.PlayerBlockHistoryManager;
 import com.mogdop.mod.network.FillAreaPayload;
 import com.mogdop.mod.network.OutlinePayload;
 import com.mogdop.mod.network.WallsPayload;
+import dev.architectury.networking.NetworkManager;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.Components;
 import io.wispforest.owo.ui.component.LabelComponent;
@@ -13,7 +14,6 @@ import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.ScrollContainer;
 import io.wispforest.owo.ui.core.*;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.MinecraftClient;
@@ -86,19 +86,16 @@ public class BlockSelectorScreen extends BaseOwoScreen<FlowLayout> {
             }
         }
 
-        // 1. Заголовок экрана в зависимости от контекста вызываемого действия
         LabelComponent title = Components.label(Text.translatable(targetAction.titleKey));
         title.color(Color.ofArgb(0xFF00C8FF));
         title.margins(Insets.bottom(10));
         rootComponent.child(title);
 
-        // 2. Главный бокс
         FlowLayout mainBox = Containers.horizontalFlow(Sizing.fixed(520), Sizing.fixed(200));
         mainBox.surface(Surface.flat(0xFA1A1A1A));
         mainBox.padding(Insets.of(10));
         mainBox.gap(15);
 
-        // ================= ЛЕВАЯ КОЛОНКА (Настройка блока и история игрока) =================
         FlowLayout leftCol = Containers.verticalFlow(Sizing.fixed(235), Sizing.fill(100));
         leftCol.gap(8);
 
@@ -132,7 +129,6 @@ public class BlockSelectorScreen extends BaseOwoScreen<FlowLayout> {
         activeRow.child(activeIconWrapper).child(activeBox).child(pickAimBtn);
         leftCol.child(activeRow);
 
-        // Секция истории блоков конкретного игрока
         leftCol.child(Components.label(Text.translatable("mogdops-mod.block_selector.history")).color(Color.ofArgb(0xFF55FFFF)).margins(Insets.top(8)));
 
         historyRowWrapper = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
@@ -144,7 +140,6 @@ public class BlockSelectorScreen extends BaseOwoScreen<FlowLayout> {
 
         mainBox.child(leftCol);
 
-        // ================= ПРАВАЯ КОЛОНКА =================
         FlowLayout rightCol = Containers.verticalFlow(Sizing.fixed(250), Sizing.fill(100));
         rightCol.surface(Surface.flat(0xFF222222));
         rightCol.padding(Insets.of(8));
@@ -174,7 +169,6 @@ public class BlockSelectorScreen extends BaseOwoScreen<FlowLayout> {
         mainBox.child(rightCol);
         rootComponent.child(mainBox);
 
-        // ================= 3. КНОПКИ ДЕЙСТВИЯ И ОЧИСТКИ В ФУТЕРЕ =================
         FlowLayout footerBar = Containers.horizontalFlow(Sizing.fixed(520), Sizing.content());
         footerBar.horizontalAlignment(HorizontalAlignment.CENTER);
         footerBar.verticalAlignment(VerticalAlignment.CENTER);
@@ -199,7 +193,6 @@ public class BlockSelectorScreen extends BaseOwoScreen<FlowLayout> {
         if (historyRowWrapper == null) return;
         historyRowWrapper.clearChildren();
 
-        // Загружаем личную историю текущего игрока
         for (String bId : PlayerBlockHistoryManager.getHistory()) {
             Identifier id = Identifier.tryParse(bId);
             if (id != null && Registries.BLOCK.containsId(id)) {
@@ -305,13 +298,12 @@ public class BlockSelectorScreen extends BaseOwoScreen<FlowLayout> {
             return;
         }
 
-        // Записываем использованный блок в личную историю игрока
         PlayerBlockHistoryManager.pushToHistory(activeBlockId);
 
         switch (targetAction) {
-            case FILL -> ClientPlayNetworking.send(new FillAreaPayload(MogDopSModClient.getSelectionPoints(), MogDopSModClient.currentSelectionMode, activeBlockId));
-            case WALLS -> ClientPlayNetworking.send(new WallsPayload(MogDopSModClient.getSelectionPoints(), MogDopSModClient.currentSelectionMode, activeBlockId));
-            case OUTLINE -> ClientPlayNetworking.send(new OutlinePayload(MogDopSModClient.getSelectionPoints(), MogDopSModClient.currentSelectionMode, activeBlockId));
+            case FILL -> NetworkManager.sendToServer(new FillAreaPayload(MogDopSModClient.getSelectionPoints(), MogDopSModClient.currentSelectionMode, activeBlockId));
+            case WALLS -> NetworkManager.sendToServer(new WallsPayload(MogDopSModClient.getSelectionPoints(), MogDopSModClient.currentSelectionMode, activeBlockId));
+            case OUTLINE -> NetworkManager.sendToServer(new OutlinePayload(MogDopSModClient.getSelectionPoints(), MogDopSModClient.currentSelectionMode, activeBlockId));
         }
 
         this.close();
@@ -326,7 +318,7 @@ public class BlockSelectorScreen extends BaseOwoScreen<FlowLayout> {
             this.close();
             return;
         }
-        ClientPlayNetworking.send(new FillAreaPayload(MogDopSModClient.getSelectionPoints(), MogDopSModClient.currentSelectionMode, "minecraft:air"));
+        NetworkManager.sendToServer(new FillAreaPayload(MogDopSModClient.getSelectionPoints(), MogDopSModClient.currentSelectionMode, "minecraft:air"));
         this.close();
     }
 

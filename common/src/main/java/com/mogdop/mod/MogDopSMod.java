@@ -6,7 +6,6 @@ import com.mogdop.mod.worldedit.WorldEditIntegration;
 import dev.architectury.event.events.common.CommandRegistrationEvent;
 import dev.architectury.networking.NetworkManager;
 import dev.architectury.registry.registries.DeferredRegister;
-import dev.architectury.registry.registries.Registrar;
 import dev.architectury.registry.registries.RegistrySupplier;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
@@ -62,7 +61,7 @@ public class MogDopSMod {
             () -> new BlockItem(MOB_SPAWNER_SLAB.get(), new Item.Settings()));
 
     public static final RegistrySupplier<BlockEntityType<MobSpawnerSlabBlockEntity>> MOB_SPAWNER_SLAB_ENTITY = BLOCK_ENTITY_TYPES.register("mob_spawner_slab",
-            () -> BlockEntityType.Builder.create(MobSpawnerSlabBlockEntity::new, MOB_SPAWNER_SLAB.get()).build());
+            () -> BlockEntityType.Builder.create(MobSpawnerSlabBlockEntity::new, MOB_SPAWNER_SLAB.get()).build(null));
 
     // 3. Сущность отображения картинок
     public static final RegistrySupplier<EntityType<ImageDisplayEntity>> IMAGE_DISPLAY_ENTITY = ENTITY_TYPES.register("image_display",
@@ -70,7 +69,7 @@ public class MogDopSMod {
                     .dimensions(0.5F, 0.5F)
                     .maxTrackingRange(12)
                     .trackingTickInterval(10)
-                    .build());
+                    .build("image_display"));
 
     public static void init() {
         LOGGER.info("MogDop's Mod Initializing on Architectury Multiplatform Engine v0.2.0...");
@@ -84,164 +83,187 @@ public class MogDopSMod {
         // Регистрация серверной команды /md staff
         CommandRegistrationEvent.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(CommandManager.literal("md")
-                .then(CommandManager.literal("staff")
-                    .executes(ctx -> {
-                        ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
-                        ItemStack stack = new ItemStack(STAFF.get());
-                        if (!player.getInventory().insertStack(stack)) {
-                            player.dropItem(stack, false);
-                        }
-                        player.currentScreenHandler.syncState();
-                        ctx.getSource().sendFeedback(() -> Text.literal("§a[MogDop] Выдан Творческий Посох!"), false);
-                        return 1;
-                    })
-                )
+                    .then(CommandManager.literal("staff")
+                            .executes(ctx -> {
+                                ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
+                                ItemStack stack = new ItemStack(STAFF.get());
+                                if (!player.getInventory().insertStack(stack)) {
+                                    player.dropItem(stack, false);
+                                }
+                                player.currentScreenHandler.syncState();
+                                ctx.getSource().sendFeedback(() -> Text.literal("§a[MogDop] Выдан Творческий Посох!"), false);
+                                return 1;
+                            })
+                    )
             );
         });
 
-        // Регистрация сетевых обработчиков через Architectury NetworkManager
+        // Регистрация сетевых обработчиков
         registerNetworkReceivers();
     }
 
     private static void registerNetworkReceivers() {
-        // Сетевой обработчик картинок
-        NetworkManager.registerReceiver(NetworkManager.c2s(), SpawnImagePayload.ID, SpawnImagePayload.CODEC, (payload, context) -> context.getPlayer().getServerWorld().getServer().execute(() -> {
+        // Обработчик картинок
+        NetworkManager.registerReceiver(NetworkManager.c2s(), SpawnImagePayload.ID, SpawnImagePayload.CODEC, (payload, context) -> {
             ServerPlayerEntity player = (ServerPlayerEntity) context.getPlayer();
-            ServerWorld world = player.getServerWorld();
-            ImageDisplayEntity entity = IMAGE_DISPLAY_ENTITY.get().create(world);
-            if (entity != null) {
-                Vec3d p1 = new Vec3d(payload.p1x(), payload.p1y(), payload.p1z());
-                Vec3d p2 = new Vec3d(payload.p2x(), payload.p2y(), payload.p2z());
-                Direction facing = Direction.byId(payload.facingId());
-                entity.setImageData(payload.imageName(), p1, p2, facing);
-                world.spawnEntity(entity);
-            }
-        }));
+            ServerWorld world = (ServerWorld) player.getWorld();
+            world.getServer().execute(() -> {
+                ImageDisplayEntity entity = IMAGE_DISPLAY_ENTITY.get().create(world);
+                if (entity != null) {
+                    Vec3d p1 = new Vec3d(payload.p1x(), payload.p1y(), payload.p1z());
+                    Vec3d p2 = new Vec3d(payload.p2x(), payload.p2y(), payload.p2z());
+                    Direction facing = Direction.byId(payload.facingId());
+                    entity.setImageData(payload.imageName(), p1, p2, facing);
+                    world.spawnEntity(entity);
+                }
+            });
+        });
 
-        // Сетевой обработчик действий инструментов
-        NetworkManager.registerReceiver(NetworkManager.c2s(), ToolActionPayload.ID, ToolActionPayload.CODEC, (payload, context) -> context.getPlayer().getServerWorld().getServer().execute(() -> {
+        // Обработчик действий инструментов
+        NetworkManager.registerReceiver(NetworkManager.c2s(), ToolActionPayload.ID, ToolActionPayload.CODEC, (payload, context) -> {
             ServerPlayerEntity player = (ServerPlayerEntity) context.getPlayer();
-            ServerWorld world = player.getServerWorld();
-            BlockPos pos = payload.pos();
-            String action = payload.action();
+            ServerWorld world = (ServerWorld) player.getWorld();
+            world.getServer().execute(() -> {
+                BlockPos pos = payload.pos();
+                String action = payload.action();
 
-            switch (action) {
-                case "REMOVER" -> {
-                    int r = payload.removerRadius();
-                    if (r <= 1) {
-                        world.setBlockState(pos, Blocks.AIR.getDefaultState());
-                    } else {
-                        int minX = pos.getX() - r + 1;
-                        int maxX = pos.getX() + r - 1;
-                        int minY = pos.getY() - r + 1;
-                        int maxY = pos.getY() + r - 1;
-                        int minZ = pos.getZ() - r + 1;
-                        int maxZ = pos.getZ() + r - 1;
-                        for (int x = minX; x <= maxX; x++) {
-                            for (int y = minY; y <= maxY; y++) {
-                                for (int z = minZ; z <= maxZ; z++) {
-                                    world.setBlockState(new BlockPos(x, y, z), Blocks.AIR.getDefaultState());
+                switch (action) {
+                    case "REMOVER" -> {
+                        int r = payload.removerRadius();
+                        if (r <= 1) {
+                            world.setBlockState(pos, Blocks.AIR.getDefaultState());
+                        } else {
+                            int minX = pos.getX() - r + 1;
+                            int maxX = pos.getX() + r - 1;
+                            int minY = pos.getY() - r + 1;
+                            int maxY = pos.getY() + r - 1;
+                            int minZ = pos.getZ() - r + 1;
+                            int maxZ = pos.getZ() + r - 1;
+                            for (int x = minX; x <= maxX; x++) {
+                                for (int y = minY; y <= maxY; y++) {
+                                    for (int z = minZ; z <= maxZ; z++) {
+                                        world.setBlockState(new BlockPos(x, y, z), Blocks.AIR.getDefaultState());
+                                    }
                                 }
                             }
                         }
                     }
-                }
-                case "EXPLOSION" -> {
-                    float power = payload.explosionPower();
-                    boolean fire = payload.explosionFire();
-                    world.createExplosion(player, pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, power, fire, net.minecraft.world.World.ExplosionSourceType.TNT);
-                }
-                case "TELEPORT" -> player.teleport(world, pos.getX() + 0.5D, pos.getY() + 1.0D, pos.getZ() + 0.5D, player.getYaw(), player.getPitch());
-            }
-        }));
-
-        // Сетевой обработчик спавна мобов
-        NetworkManager.registerReceiver(NetworkManager.c2s(), SpawnEntityPayload.ID, SpawnEntityPayload.CODEC, (payload, context) -> context.getPlayer().getServerWorld().getServer().execute(() -> {
-            ServerPlayerEntity player = (ServerPlayerEntity) context.getPlayer();
-            ServerWorld world = player.getServerWorld();
-            HitResult hitResult = player.raycast(64.0D, 1.0F, false);
-            Vec3d spawnPos = hitResult.getPos();
-
-            if (hitResult.getType() == HitResult.Type.BLOCK) {
-                BlockHitResult blockHit = (BlockHitResult) hitResult;
-                Direction side = blockHit.getSide();
-                spawnPos = spawnPos.add(side.getOffsetX() * 0.5, side.getOffsetY() * 0.1, side.getOffsetZ() * 0.5);
-            } else {
-                spawnPos = player.getEyePos().add(player.getRotationVec(1.0F).multiply(3.0D));
-            }
-
-            Identifier id = Identifier.of(payload.entityId());
-            EntityType<?> entityType = Registries.ENTITY_TYPE.get(id);
-
-            Entity entity = entityType.create(world);
-            if (entity != null) {
-                if (!payload.customName().isEmpty()) {
-                    entity.setCustomName(Text.literal(payload.customName()));
-                    entity.setCustomNameVisible(payload.nameVisible());
-                }
-                entity.setNoGravity(payload.noGravity());
-                entity.setSilent(payload.silent());
-                entity.setGlowing(payload.glowing());
-
-                if (payload.isBaby()) {
-                    if (entity instanceof net.minecraft.entity.passive.PassiveEntity passive) {
-                        passive.setBaby(true);
-                    } else if (entity instanceof net.minecraft.entity.mob.ZombieEntity zombie) {
-                        zombie.setBaby(true);
+                    case "EXPLOSION" -> {
+                        float power = payload.explosionPower();
+                        boolean fire = payload.explosionFire();
+                        world.createExplosion(player, pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, power, fire, net.minecraft.world.World.ExplosionSourceType.TNT);
                     }
+                    case "TELEPORT" -> player.teleport(world, pos.getX() + 0.5D, pos.getY() + 1.0D, pos.getZ() + 0.5D, player.getYaw(), player.getPitch());
                 }
+            });
+        });
 
-                if (entity instanceof net.minecraft.entity.mob.SlimeEntity slime && payload.slimeSize() > 0) {
-                    slime.setSize(payload.slimeSize(), true);
-                }
-
-                if (payload.fireTicks() > 0) {
-                    entity.setOnFireFor(payload.fireTicks());
-                }
-
-                entity.refreshPositionAndAngles(spawnPos.x, spawnPos.y, spawnPos.z, player.getYaw(), 0.0F);
-                world.spawnEntity(entity);
-            }
-        }));
-
-        // Сетевой обработчик выдачи предметов
-        NetworkManager.registerReceiver(NetworkManager.c2s(), GiveItemPayload.ID, GiveItemPayload.CODEC, (payload, context) -> context.getPlayer().getServerWorld().getServer().execute(() -> {
+        // Обработчик спавна мобов
+        NetworkManager.registerReceiver(NetworkManager.c2s(), SpawnEntityPayload.ID, SpawnEntityPayload.CODEC, (payload, context) -> {
             ServerPlayerEntity player = (ServerPlayerEntity) context.getPlayer();
-            ItemStack stack = payload.stack().copy();
-            if (stack.isEmpty()) return;
-            if (!player.getInventory().insertStack(stack)) {
-                player.dropItem(stack, false);
-            }
-            player.currentScreenHandler.syncState();
-        }));
+            ServerWorld world = (ServerWorld) player.getWorld();
+            world.getServer().execute(() -> {
+                HitResult hitResult = player.raycast(64.0D, 1.0F, false);
+                Vec3d spawnPos = hitResult.getPos();
+
+                if (hitResult.getType() == HitResult.Type.BLOCK) {
+                    BlockHitResult blockHit = (BlockHitResult) hitResult;
+                    Direction side = blockHit.getSide();
+                    spawnPos = spawnPos.add(side.getOffsetX() * 0.5, side.getOffsetY() * 0.1, side.getOffsetZ() * 0.5);
+                } else {
+                    spawnPos = player.getEyePos().add(player.getRotationVec(1.0F).multiply(3.0D));
+                }
+
+                Identifier id = Identifier.of(payload.entityId());
+                EntityType<?> entityType = Registries.ENTITY_TYPE.get(id);
+
+                Entity entity = entityType.create(world);
+                if (entity != null) {
+                    if (!payload.customName().isEmpty()) {
+                        entity.setCustomName(Text.literal(payload.customName()));
+                        entity.setCustomNameVisible(payload.nameVisible());
+                    }
+                    entity.setNoGravity(payload.noGravity());
+                    entity.setSilent(payload.silent());
+                    entity.setGlowing(payload.glowing());
+
+                    if (payload.isBaby()) {
+                        if (entity instanceof net.minecraft.entity.passive.PassiveEntity passive) {
+                            passive.setBaby(true);
+                        } else if (entity instanceof net.minecraft.entity.mob.ZombieEntity zombie) {
+                            zombie.setBaby(true);
+                        }
+                    }
+
+                    if (entity instanceof net.minecraft.entity.mob.SlimeEntity slime && payload.slimeSize() > 0) {
+                        slime.setSize(payload.slimeSize(), true);
+                    }
+
+                    if (payload.fireTicks() > 0) {
+                        entity.setOnFireFor(payload.fireTicks());
+                    }
+
+                    entity.refreshPositionAndAngles(spawnPos.x, spawnPos.y, spawnPos.z, player.getYaw(), 0.0F);
+                    world.spawnEntity(entity);
+                }
+            });
+        });
+
+        // Обработчик выдачи предметов
+        NetworkManager.registerReceiver(NetworkManager.c2s(), GiveItemPayload.ID, GiveItemPayload.CODEC, (payload, context) -> {
+            ServerPlayerEntity player = (ServerPlayerEntity) context.getPlayer();
+            ServerWorld world = (ServerWorld) player.getWorld();
+            world.getServer().execute(() -> {
+                ItemStack stack = payload.stack().copy();
+                if (stack.isEmpty()) return;
+                if (!player.getInventory().insertStack(stack)) {
+                    player.dropItem(stack, false);
+                }
+                player.currentScreenHandler.syncState();
+            });
+        });
 
         // Обработчики WorldEdit API
-        NetworkManager.registerReceiver(NetworkManager.c2s(), FillAreaPayload.ID, FillAreaPayload.CODEC, (payload, context) -> context.getPlayer().getServerWorld().getServer().execute(() -> {
-            WorldEditIntegration.fillArea((ServerPlayerEntity) context.getPlayer(), payload.points(), payload.selectionMode(), payload.blockId());
-        }));
+        NetworkManager.registerReceiver(NetworkManager.c2s(), FillAreaPayload.ID, FillAreaPayload.CODEC, (payload, context) -> {
+            ServerPlayerEntity player = (ServerPlayerEntity) context.getPlayer();
+            ServerWorld world = (ServerWorld) player.getWorld();
+            world.getServer().execute(() -> WorldEditIntegration.fillArea(player, payload.points(), payload.selectionMode(), payload.blockId()));
+        });
 
-        NetworkManager.registerReceiver(NetworkManager.c2s(), WallsPayload.ID, WallsPayload.CODEC, (payload, context) -> context.getPlayer().getServerWorld().getServer().execute(() -> {
-            WorldEditIntegration.walls((ServerPlayerEntity) context.getPlayer(), payload.points(), payload.selectionMode(), payload.blockId());
-        }));
+        NetworkManager.registerReceiver(NetworkManager.c2s(), WallsPayload.ID, WallsPayload.CODEC, (payload, context) -> {
+            ServerPlayerEntity player = (ServerPlayerEntity) context.getPlayer();
+            ServerWorld world = (ServerWorld) player.getWorld();
+            world.getServer().execute(() -> WorldEditIntegration.walls(player, payload.points(), payload.selectionMode(), payload.blockId()));
+        });
 
-        NetworkManager.registerReceiver(NetworkManager.c2s(), OutlinePayload.ID, OutlinePayload.CODEC, (payload, context) -> context.getPlayer().getServerWorld().getServer().execute(() -> {
-            WorldEditIntegration.outline((ServerPlayerEntity) context.getPlayer(), payload.points(), payload.selectionMode(), payload.blockId());
-        }));
+        NetworkManager.registerReceiver(NetworkManager.c2s(), OutlinePayload.ID, OutlinePayload.CODEC, (payload, context) -> {
+            ServerPlayerEntity player = (ServerPlayerEntity) context.getPlayer();
+            ServerWorld world = (ServerWorld) player.getWorld();
+            world.getServer().execute(() -> WorldEditIntegration.outline(player, payload.points(), payload.selectionMode(), payload.blockId()));
+        });
 
-        NetworkManager.registerReceiver(NetworkManager.c2s(), ReplaceAreaPayload.ID, ReplaceAreaPayload.CODEC, (payload, context) -> context.getPlayer().getServerWorld().getServer().execute(() -> {
-            WorldEditIntegration.replaceArea((ServerPlayerEntity) context.getPlayer(), payload.points(), payload.selectionMode(), payload.targetBlockId(), payload.replacementBlockId());
-        }));
+        NetworkManager.registerReceiver(NetworkManager.c2s(), ReplaceAreaPayload.ID, ReplaceAreaPayload.CODEC, (payload, context) -> {
+            ServerPlayerEntity player = (ServerPlayerEntity) context.getPlayer();
+            ServerWorld world = (ServerWorld) player.getWorld();
+            world.getServer().execute(() -> WorldEditIntegration.replaceArea(player, payload.points(), payload.selectionMode(), payload.targetBlockId(), payload.replacementBlockId()));
+        });
 
-        NetworkManager.registerReceiver(NetworkManager.c2s(), UndoPayload.ID, UndoPayload.CODEC, (payload, context) -> context.getPlayer().getServerWorld().getServer().execute(() -> {
-            WorldEditIntegration.undo((ServerPlayerEntity) context.getPlayer());
-        }));
+        NetworkManager.registerReceiver(NetworkManager.c2s(), UndoPayload.ID, UndoPayload.CODEC, (payload, context) -> {
+            ServerPlayerEntity player = (ServerPlayerEntity) context.getPlayer();
+            ServerWorld world = (ServerWorld) player.getWorld();
+            world.getServer().execute(() -> WorldEditIntegration.undo(player));
+        });
 
-        NetworkManager.registerReceiver(NetworkManager.c2s(), RedoPayload.ID, RedoPayload.CODEC, (payload, context) -> context.getPlayer().getServerWorld().getServer().execute(() -> {
-            WorldEditIntegration.redo((ServerPlayerEntity) context.getPlayer());
-        }));
+        NetworkManager.registerReceiver(NetworkManager.c2s(), RedoPayload.ID, RedoPayload.CODEC, (payload, context) -> {
+            ServerPlayerEntity player = (ServerPlayerEntity) context.getPlayer();
+            ServerWorld world = (ServerWorld) player.getWorld();
+            world.getServer().execute(() -> WorldEditIntegration.redo(player));
+        });
 
-        NetworkManager.registerReceiver(NetworkManager.c2s(), DrainPayload.ID, DrainPayload.CODEC, (payload, context) -> context.getPlayer().getServerWorld().getServer().execute(() -> {
-            WorldEditIntegration.drain((ServerPlayerEntity) context.getPlayer(), payload.radius());
-        }));
+        NetworkManager.registerReceiver(NetworkManager.c2s(), DrainPayload.ID, DrainPayload.CODEC, (payload, context) -> {
+            ServerPlayerEntity player = (ServerPlayerEntity) context.getPlayer();
+            ServerWorld world = (ServerWorld) player.getWorld();
+            world.getServer().execute(() -> WorldEditIntegration.drain(player, payload.radius()));
+        });
     }
 }

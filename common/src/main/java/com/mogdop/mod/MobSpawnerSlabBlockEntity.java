@@ -25,17 +25,16 @@ import java.util.UUID;
 public class MobSpawnerSlabBlockEntity extends BlockEntity {
 
     private String mobId = "minecraft:zombie";
-    private int spawnInterval = 100; // 5 секунд по умолчанию (1 секунда = 20 тиков)
+    private int spawnInterval = 100;
     private int maxMobs = 5;
     private int currentSpawnTimer = 0;
-    private boolean active = false; // По умолчанию выключен
-    private int spawnRange = 1; // По умолчанию спавн строго по центру плиты
+    private boolean active = false;
+    private int spawnRange = 1;
 
-    // Список UUID сущностей, которые были созданы конкретно этим спавнером
     private final List<UUID> spawnedUuids = new ArrayList<>();
 
     public MobSpawnerSlabBlockEntity(BlockPos pos, BlockState state) {
-        super(MogDopSMod.MOB_SPAWNER_SLAB_ENTITY, pos, state);
+        super(MogDopSMod.MOB_SPAWNER_SLAB_ENTITY.get(), pos, state);
     }
 
     public String getMobId() { return mobId; }
@@ -63,7 +62,6 @@ public class MobSpawnerSlabBlockEntity extends BlockEntity {
         nbt.putBoolean("Active", active);
         nbt.putInt("SpawnRange", spawnRange);
 
-        // Сериализуем список UUID связанных сущностей
         NbtList uuidList = new NbtList();
         for (UUID uuid : spawnedUuids) {
             uuidList.add(NbtHelper.fromUuid(uuid));
@@ -85,7 +83,6 @@ public class MobSpawnerSlabBlockEntity extends BlockEntity {
         this.spawnRange = nbt.getInt("SpawnRange");
         if (this.spawnRange <= 0) this.spawnRange = 1;
 
-        // Десериализуем список UUID связанных сущностей
         this.spawnedUuids.clear();
         if (nbt.contains("SpawnedUuids", NbtElement.LIST_TYPE)) {
             NbtList uuidList = nbt.getList("SpawnedUuids", NbtElement.INT_ARRAY_TYPE);
@@ -109,14 +106,10 @@ public class MobSpawnerSlabBlockEntity extends BlockEntity {
         return nbt;
     }
 
-    // Логика серверного таймера спавна
     public static void tick(World world, BlockPos pos, BlockState state, MobSpawnerSlabBlockEntity blockEntity) {
         if (world.isClient()) return;
-
-        // Если спавнер выключен тумблером — прекращаем работу тиков
         if (!blockEntity.active) return;
 
-        // 1. Очищаем список, удаляя сущности, которые погибли или больше не существуют в мире
         blockEntity.spawnedUuids.removeIf(uuid -> {
             Entity entity = ((ServerWorld) world).getEntity(uuid);
             return entity == null || !entity.isAlive();
@@ -126,13 +119,11 @@ public class MobSpawnerSlabBlockEntity extends BlockEntity {
         if (blockEntity.currentSpawnTimer >= blockEntity.spawnInterval) {
             blockEntity.currentSpawnTimer = 0;
 
-            // 2. Проверяем лимит только по сущностям, созданным ИМЕННО этим спавнером
             if (blockEntity.spawnedUuids.size() < blockEntity.maxMobs) {
                 EntityType<?> type = Registries.ENTITY_TYPE.get(Identifier.tryParse(blockEntity.mobId));
                 if (type != null) {
                     Entity entity = type.create(world);
                     if (entity != null) {
-                        // Расчет отклонения (разброса) спавна
                         double offsetLimit = blockEntity.spawnRange - 1;
                         double spawnX = pos.getX() + 0.5D + (world.random.nextDouble() * 2.0D - 1.0D) * offsetLimit;
                         double spawnY = pos.getY() + 1.0D;
@@ -141,7 +132,6 @@ public class MobSpawnerSlabBlockEntity extends BlockEntity {
                         entity.refreshPositionAndAngles(spawnX, spawnY, spawnZ, world.random.nextFloat() * 360F, 0.0F);
                         world.spawnEntity(entity);
 
-                        // 3. Запоминаем уникальный UUID призываемого моба
                         blockEntity.spawnedUuids.add(entity.getUuid());
                         blockEntity.markDirty();
                     }

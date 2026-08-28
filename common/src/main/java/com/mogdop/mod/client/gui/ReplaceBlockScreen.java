@@ -2,6 +2,7 @@ package com.mogdop.mod.client.gui;
 
 import com.mogdop.mod.client.MogDopSModClient;
 import com.mogdop.mod.network.ReplaceAreaPayload;
+import dev.architectury.networking.NetworkManager;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.Components;
 import io.wispforest.owo.ui.component.LabelComponent;
@@ -10,7 +11,6 @@ import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.ScrollContainer;
 import io.wispforest.owo.ui.core.*;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.MinecraftClient;
@@ -282,7 +282,7 @@ public class ReplaceBlockScreen extends BaseOwoScreen<FlowLayout> {
             this.close();
             return;
         }
-        ClientPlayNetworking.send(new ReplaceAreaPayload(MogDopSModClient.getSelectionPoints(), MogDopSModClient.currentSelectionMode, targetBlockId, replacementBlockId));
+        NetworkManager.sendToServer(new ReplaceAreaPayload(MogDopSModClient.getSelectionPoints(), MogDopSModClient.currentSelectionMode, targetBlockId, replacementBlockId));
         this.close();
     }
 

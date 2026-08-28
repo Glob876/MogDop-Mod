@@ -3,6 +3,7 @@ package com.mogdop.mod.client.gui;
 import com.mogdop.mod.client.MogDopSModClient;
 import com.mogdop.mod.network.*;
 import com.mojang.blaze3d.systems.RenderSystem;
+import dev.architectury.networking.NetworkManager;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
@@ -10,13 +11,11 @@ import io.wispforest.owo.ui.core.HorizontalAlignment;
 import io.wispforest.owo.ui.core.OwoUIAdapter;
 import io.wispforest.owo.ui.core.Surface;
 import io.wispforest.owo.ui.core.VerticalAlignment;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
@@ -45,8 +44,7 @@ public class QuickFillReplaceScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private final List<QuickAction> actions = new ArrayList<>();
-
-    private int hoverIndex = -1; // -1 = Мертвая зона (Центр)
+    private int hoverIndex = -1;
     private double cubeX = 0;
     private double cubeY = 0;
     private boolean initialized = false;
@@ -59,15 +57,13 @@ public class QuickFillReplaceScreen extends BaseOwoScreen<FlowLayout> {
     private void initActions() {
         actions.clear();
 
-        // 1. ВЕРХНЯЯ ПАРА: UNDO (-110°) И REDO (-70°)
         actions.add(new QuickAction("mogdops-mod.quick_select.undo", "mogdops-mod.quick_select.undo.desc", Items.FEATHER, 0xFFFFAA00, -110.0, () -> {
-            ClientPlayNetworking.send(new UndoPayload());
+            NetworkManager.sendToServer(new UndoPayload());
         }));
         actions.add(new QuickAction("mogdops-mod.quick_select.redo", "mogdops-mod.quick_select.redo.desc", Items.GUNPOWDER, 0xFFFF5500, -70.0, () -> {
-            ClientPlayNetworking.send(new RedoPayload());
+            NetworkManager.sendToServer(new RedoPayload());
         }));
 
-        // 2. СРЕДНЕ-ВЕРХНЯЯ ПАРА: //SET (-150°) И //REPLACE (-30°)
         actions.add(new QuickAction("mogdops-mod.quick_select.set", "mogdops-mod.quick_select.set.desc", Items.BRICKS, 0xFF00AA00, -150.0, () -> {
             MinecraftClient client = MinecraftClient.getInstance();
             if (client != null) client.setScreen(new BlockSelectorScreen(BlockSelectorScreen.TargetAction.FILL));
@@ -83,7 +79,6 @@ public class QuickFillReplaceScreen extends BaseOwoScreen<FlowLayout> {
             }
         }));
 
-        // 3. НИЖНЯЯ ДУГА КРУГА: СТЕНЫ (10°), КОРОБКА (50°), ОЧИСТИТЬ (90°), ОСУШЕНИЕ (130°), ДУБЛИКАТ (170°)
         actions.add(new QuickAction("mogdops-mod.quick_select.walls", "mogdops-mod.quick_select.walls.desc", Items.COBBLESTONE_WALL, 0xFF9966FF, 10.0, () -> {
             MinecraftClient client = MinecraftClient.getInstance();
             if (MogDopSModClient.getSelectionPoints().isEmpty()) {
@@ -113,7 +108,7 @@ public class QuickFillReplaceScreen extends BaseOwoScreen<FlowLayout> {
         }));
 
         actions.add(new QuickAction("mogdops-mod.quick_select.drain", "mogdops-mod.quick_select.drain.desc", Items.SPONGE, 0xFF3399FF, 130.0, () -> {
-            ClientPlayNetworking.send(new DrainPayload(10));
+            NetworkManager.sendToServer(new DrainPayload(10));
         }));
 
         actions.add(new QuickAction("mogdops-mod.quick_select.stack", "mogdops-mod.quick_select.stack.desc", Items.REPEATER, 0xFF55FFFF, 170.0, () -> {
@@ -121,7 +116,7 @@ public class QuickFillReplaceScreen extends BaseOwoScreen<FlowLayout> {
                 MinecraftClient client = MinecraftClient.getInstance();
                 if (client != null && client.player != null) client.player.sendMessage(Text.translatable("mogdops-mod.error.positions_not_set"), false);
             } else {
-                ClientPlayNetworking.send(new StackPayload(MogDopSModClient.pos1, MogDopSModClient.pos2, 1, "FORWARD"));
+                NetworkManager.sendToServer(new StackPayload(MogDopSModClient.pos1, MogDopSModClient.pos2, 1, "FORWARD"));
             }
         }));
     }
@@ -164,7 +159,6 @@ public class QuickFillReplaceScreen extends BaseOwoScreen<FlowLayout> {
         int screenHeight = this.height;
         int centerX = screenWidth / 2;
         int centerY = screenHeight / 2;
-
         int radius = 130;
 
         double mDx = mouseX - centerX;
@@ -245,54 +239,43 @@ public class QuickFillReplaceScreen extends BaseOwoScreen<FlowLayout> {
             int cardX = (int) (centerX + radius * Math.cos(rad) - cardW / 2.0);
             int cardY = (int) (centerY + radius * Math.sin(rad) - cardH / 2.0);
 
-            drawCard(context, action, cardX, cardY, cardW, cardH, isSel);
+            int bgAlpha = isSel ? 0xDD000000 : 0xAA000000;
+            int bgColor = bgAlpha | (isSel ? (action.themeColor & 0x00FFFFFF) : 0x14141A);
+
+            context.fill(cardX, cardY, cardX + cardW, cardY + cardH, bgColor);
+
+            if (isSel) {
+                context.drawBorder(cardX - 1, cardY - 1, cardW + 2, cardH + 2, 0xFFFFFFFF);
+                context.drawBorder(cardX, cardY, cardW, cardH, action.themeColor);
+            } else {
+                context.drawBorder(cardX, cardY, cardW, cardH, 0x33FFFFFF);
+            }
+
+            ItemStack iconStack = new ItemStack(action.iconItem);
+            context.drawItem(iconStack, cardX + 5, cardY + cardH / 2 - 8);
+
+            Text cardTitle = Text.translatable(action.titleKey);
+            context.drawTextWithShadow(this.textRenderer, cardTitle, cardX + 24, cardY + cardH / 2 - 4, isSel ? 0xFFFFFFFF : 0x88FFFFFF);
         }
 
         RenderSystem.disableDepthTest();
         context.getMatrices().push();
         context.getMatrices().translate(0, 0, 1000f);
 
-        drawCubeCursor(context, (float) cubeX, (float) cubeY, animTimer);
-
-        context.getMatrices().pop();
-        RenderSystem.enableDepthTest();
-    }
-
-    private void drawCard(DrawContext context, QuickAction action, int cardX, int cardY, int cardW, int cardH, boolean isSel) {
-        int bgAlpha = isSel ? 0xDD000000 : 0xAA000000;
-        int bgColor = bgAlpha | (isSel ? (action.themeColor & 0x00FFFFFF) : 0x14141A);
-
-        context.fill(cardX, cardY, cardX + cardW, cardY + cardH, bgColor);
-
-        if (isSel) {
-            context.drawBorder(cardX - 1, cardY - 1, cardW + 2, cardH + 2, 0xFFFFFFFF);
-            context.drawBorder(cardX, cardY, cardW, cardH, action.themeColor);
-        } else {
-            context.drawBorder(cardX, cardY, cardW, cardH, 0x33FFFFFF);
-        }
-
-        ItemStack iconStack = new ItemStack(action.iconItem);
-        context.drawItem(iconStack, cardX + 5, cardY + cardH / 2 - 8);
-
-        Text cardTitle = Text.translatable(action.titleKey);
-        context.drawTextWithShadow(this.textRenderer, cardTitle, cardX + 24, cardY + cardH / 2 - 4, isSel ? 0xFFFFFFFF : 0x88FFFFFF);
-    }
-
-    private void drawCubeCursor(DrawContext context, float cx, float cy, float time) {
         int r = 9;
-        int x = (int) cx;
-        int y = (int) cy;
-
-        int alphaGlow = (int) (160 + 80 * Math.sin(time * 0.25));
+        int x = (int) cubeX;
+        int y = (int) cubeY;
+        int alphaGlow = (int) (160 + 80 * Math.sin(animTimer * 0.25));
         int glowColor = (alphaGlow << 24) | 0x00C8FF;
 
         context.fill(x - r - 4, y - r - 4, x + r + 5, y + r + 5, glowColor & 0x4400C8FF);
-
         context.fill(x - r, y - r, x + r, y, 0xFF00E5FF);
         context.fill(x - r, y, x, y + r, 0xFF0099DD);
         context.fill(x, y, x + r, y + r, 0xFF0055AA);
-
         context.drawBorder(x - r, y - r, r * 2 + 1, r * 2 + 1, 0xFFFFFFFF);
+
+        context.getMatrices().pop();
+        RenderSystem.enableDepthTest();
     }
 
     private void executeSelectedAction() {

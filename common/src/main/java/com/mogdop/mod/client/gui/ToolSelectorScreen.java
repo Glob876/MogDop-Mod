@@ -40,7 +40,7 @@ public class ToolSelectorScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     protected void build(FlowLayout rootComponent) {
         this.root = rootComponent;
-        rootComponent.surface(Surface.flat(0xCC141414)); 
+        rootComponent.surface(Surface.flat(0xCC141414));
         rootComponent.horizontalAlignment(HorizontalAlignment.CENTER);
         rootComponent.verticalAlignment(VerticalAlignment.CENTER);
         rootComponent.padding(Insets.of(20));
@@ -75,7 +75,7 @@ public class ToolSelectorScreen extends BaseOwoScreen<FlowLayout> {
         rightConfigPanel.surface(Surface.flat(0xFF222222));
         rightConfigPanel.padding(Insets.of(12));
         rightConfigPanel.gap(10);
-        
+
         mainBox.child(rightConfigPanel);
         rootComponent.child(mainBox);
 
@@ -85,13 +85,13 @@ public class ToolSelectorScreen extends BaseOwoScreen<FlowLayout> {
     private FlowLayout createModeButton(int width, int height, String key, int modeIndex) {
         boolean isSelected = MogDopSModClient.currentToolMode == modeIndex;
         int color = isSelected ? 0xFF00AAFF : 0xFF333333;
-        
+
         FlowLayout btn = Containers.horizontalFlow(Sizing.fixed(width), Sizing.fixed(height));
         btn.surface(Surface.flat(color));
         btn.cursorStyle(CursorStyle.HAND);
         btn.horizontalAlignment(HorizontalAlignment.CENTER);
         btn.verticalAlignment(VerticalAlignment.CENTER);
-        
+
         LabelComponent lbl = Components.label(Text.translatable(key));
         lbl.color(Color.ofArgb(isSelected ? 0xFFFFFFFF : 0xFFAAAAAA));
         btn.child(lbl);
@@ -114,7 +114,7 @@ public class ToolSelectorScreen extends BaseOwoScreen<FlowLayout> {
                 if (MinecraftClient.getInstance().player != null) {
                     MinecraftClient.getInstance().player.sendMessage(Text.translatable("mogdops-mod.tool.mode_changed", Text.translatable(MogDopSModClient.TOOL_MODE_KEYS[modeIndex])), true);
                 }
-                
+
                 root.clearChildren();
                 build(root);
                 return true;
@@ -135,74 +135,72 @@ public class ToolSelectorScreen extends BaseOwoScreen<FlowLayout> {
         rightConfigPanel.child(title);
 
         switch (mode) {
-            case 0: // Выделение
+            case 0 -> { // Выделение
                 rightConfigPanel.child(Components.label(Text.translatable("mogdops-mod.tool_selector.mode.selection.desc")).color(Color.ofArgb(0xFFBBBBBB)));
                 rightConfigPanel.child(Components.label(Text.translatable("mogdops-mod.tool_selector.mode.selection.lmb")).color(Color.ofArgb(0xFF55FF55)));
                 rightConfigPanel.child(Components.label(Text.translatable("mogdops-mod.tool_selector.mode.selection.rmb")).color(Color.ofArgb(0xFF55FF55)));
-                
+
                 String notSet = Text.translatable("mogdops-mod.hud.not_set").getString();
                 String p1Text = MogDopSModClient.pos1 == null ? notSet : MogDopSModClient.pos1.toShortString();
                 String p2Text = MogDopSModClient.pos2 == null ? notSet : MogDopSModClient.pos2.toShortString();
-                
+
                 rightConfigPanel.child(Components.label(Text.translatable("mogdops-mod.tool_selector.pos1", p1Text)).margins(Insets.top(5)));
                 rightConfigPanel.child(Components.label(Text.translatable("mogdops-mod.tool_selector.pos2", p2Text)));
-                
+
                 FlowLayout clearBtn = createFlatButton(140, 20, Text.translatable("mogdops-mod.tool_selector.reset_positions"), () -> {
                     MogDopSModClient.pos1 = null;
                     MogDopSModClient.pos2 = null;
                     rebuildConfigPanel();
                 });
                 rightConfigPanel.child(clearBtn.margins(Insets.top(10)));
-                break;
-
-            case 1: // Уничтожитель
+            }
+            case 1 -> { // Уничтожитель
                 rightConfigPanel.child(Components.label(Text.translatable("mogdops-mod.tool_selector.mode.remover.desc")).color(Color.ofArgb(0xFFBBBBBB)));
-                
+
                 FlowLayout radiusRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
                 radiusRow.verticalAlignment(VerticalAlignment.CENTER);
                 radiusRow.gap(10);
                 radiusRow.child(Components.label(Text.translatable("mogdops-mod.tool_selector.radius")));
-                
+
                 LabelComponent radiusVal = Components.label(Text.literal(String.valueOf(MogDopSModClient.CONFIG.toolRemoverRadius())));
-                
+
                 FlowLayout decRadius = createFlatButton(20, 20, Text.literal("-"), () -> {
                     int nextVal = Math.max(1, MogDopSModClient.CONFIG.toolRemoverRadius() - 1);
                     MogDopSModClient.CONFIG.toolRemoverRadius(nextVal);
                     radiusVal.text(Text.literal(String.valueOf(nextVal)));
                 });
-                
+
                 FlowLayout incRadius = createFlatButton(20, 20, Text.literal("+"), () -> {
                     int nextVal = Math.min(16, MogDopSModClient.CONFIG.toolRemoverRadius() + 1);
                     MogDopSModClient.CONFIG.toolRemoverRadius(nextVal);
                     radiusVal.text(Text.literal(String.valueOf(nextVal)));
                 });
-                
+
                 radiusRow.child(decRadius).child(radiusVal).child(incRadius);
                 rightConfigPanel.child(radiusRow);
-                break;
-
-            case 2: // Взрыватель
+            }
+            case 2 -> { // Взрыватель
                 rightConfigPanel.child(Components.label(Text.translatable("mogdops-mod.tool_selector.mode.explosion.desc")).color(Color.ofArgb(0xFFBBBBBB)));
-                
+
                 FlowLayout powerRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
                 powerRow.verticalAlignment(VerticalAlignment.CENTER);
                 powerRow.gap(10);
                 powerRow.child(Components.label(Text.translatable("mogdops-mod.tool_selector.power")));
-                
+
                 LabelComponent powerVal = Components.label(Text.literal(String.format("%.1f", MogDopSModClient.CONFIG.toolExplosionPower())));
-                
+
                 FlowLayout decPower = createFlatButton(20, 20, Text.literal("-"), () -> {
                     float nextVal = Math.max(1.0F, MogDopSModClient.CONFIG.toolExplosionPower() - 0.5F);
                     MogDopSModClient.CONFIG.toolExplosionPower(nextVal);
                     powerVal.text(Text.literal(String.format("%.1f", nextVal)));
                 });
-                
+
                 FlowLayout incPower = createFlatButton(20, 20, Text.literal("+"), () -> {
                     float nextVal = Math.min(50.0F, MogDopSModClient.CONFIG.toolExplosionPower() + 0.5F);
                     MogDopSModClient.CONFIG.toolExplosionPower(nextVal);
                     powerVal.text(Text.literal(String.format("%.1f", nextVal)));
                 });
-                
+
                 powerRow.child(decPower).child(powerVal).child(incPower);
                 rightConfigPanel.child(powerRow);
 
@@ -210,34 +208,46 @@ public class ToolSelectorScreen extends BaseOwoScreen<FlowLayout> {
                 fireRow.verticalAlignment(VerticalAlignment.CENTER);
                 fireRow.gap(10);
                 fireRow.child(Components.label(Text.translatable("mogdops-mod.tool_selector.fire")));
-                
+
                 CheckboxComponent fireCheck = Components.checkbox(Text.literal(""));
                 fireCheck.checked(MogDopSModClient.CONFIG.toolExplosionFire());
-                fireCheck.onChanged(state -> {
-                    MogDopSModClient.CONFIG.toolExplosionFire(state);
-                });
+                fireCheck.onChanged(state -> MogDopSModClient.CONFIG.toolExplosionFire(state));
                 fireRow.child(fireCheck);
                 rightConfigPanel.child(fireRow);
-                break;
-
-            case 3: // Телепортер
+            }
+            case 3 -> { // Телепортер
                 rightConfigPanel.child(Components.label(Text.translatable("mogdops-mod.tool_selector.mode.teleport.desc")).color(Color.ofArgb(0xFFBBBBBB)));
                 rightConfigPanel.child(Components.label(Text.translatable("mogdops-mod.tool_selector.mode.teleport.range")).color(Color.ofArgb(0xAAFFFFFF)));
-                break;
-
-            case 4: // Спавнер
+            }
+            case 4 -> { // Спавнер
                 rightConfigPanel.child(Components.label(Text.translatable("mogdops-mod.tool_selector.mode.spawner.desc")).color(Color.ofArgb(0xFFBBBBBB)));
-                
+
                 Identifier id = Identifier.tryParse(MogDopSModClient.activeSpawnId);
                 String mobName = id != null ? Registries.ENTITY_TYPE.get(id).getName().getString() : "Cow";
                 rightConfigPanel.child(Components.label(Text.translatable("mogdops-mod.tool_selector.selected_mob", mobName)));
-                
+
                 FlowLayout openSpawnerBtn = createFlatButton(180, 24, Text.translatable("mogdops-mod.tool_selector.open_spawner"), () -> {
                     this.close();
                     MinecraftClient.getInstance().setScreen(new SpawnerScreen());
                 });
                 rightConfigPanel.child(openSpawnerBtn.margins(Insets.top(10)));
-                break;
+            }
+            case 5 -> { // Схематики
+                rightConfigPanel.child(Components.label(Text.translatable("mogdops-mod.tool_selector.mode.schematics.desc")).color(Color.ofArgb(0xFFBBBBBB)));
+                FlowLayout openSchemBtn = createFlatButton(180, 24, Text.translatable("mogdops-mod.schematic.title"), () -> {
+                    this.close();
+                    MinecraftClient.getInstance().setScreen(new SchematicScreen());
+                });
+                rightConfigPanel.child(openSchemBtn.margins(Insets.top(10)));
+            }
+            case 6 -> { // Изображения
+                rightConfigPanel.child(Components.label(Text.translatable("mogdops-mod.tool_selector.mode.image.desc")).color(Color.ofArgb(0xFFBBBBBB)));
+                FlowLayout openImgBtn = createFlatButton(180, 24, Text.translatable("mogdops-mod.image.title"), () -> {
+                    this.close();
+                    MinecraftClient.getInstance().setScreen(new ImageSelectorScreen());
+                });
+                rightConfigPanel.child(openImgBtn.margins(Insets.top(10)));
+            }
         }
     }
 
@@ -247,7 +257,7 @@ public class ToolSelectorScreen extends BaseOwoScreen<FlowLayout> {
         btn.cursorStyle(CursorStyle.HAND);
         btn.horizontalAlignment(HorizontalAlignment.CENTER);
         btn.verticalAlignment(VerticalAlignment.CENTER);
-        
+
         LabelComponent lbl = Components.label(text);
         lbl.color(Color.ofArgb(0xFFFFFFFF));
         btn.child(lbl);
