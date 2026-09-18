@@ -166,6 +166,20 @@ public class ImageDisplayEntity extends Entity {
         return r == null ? 0f : r;
     }
 
+    /**
+     * setImageData выполняется только на сервере — на клиенте координаты
+     * прилетают синком трекера, и без этого бокс навсегда остаётся дефолтным
+     * 0.5³ в центре: как только центр уходит из кадра, движок отсекает
+     * сущность целиком вместе с картинкой.
+     */
+    @Override
+    public void onTrackedDataSet(TrackedData<?> data) {
+        super.onTrackedDataSet(data);
+        if (data == COORDS || data == FACING || data == ROTATION) {
+            updateBoundingBox();
+        }
+    }
+
     @Override
     public boolean canHit() {
         return !this.isRemoved();
