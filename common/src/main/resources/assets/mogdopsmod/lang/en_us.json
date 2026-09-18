@@ -10,12 +10,10 @@
   "key.mogdops-mod.block_selector": "Select Selection Mode (J)",
   "key.mogdops-mod.open_schematics": "Schematics & Clipboard (K)",
   "key.mogdops-mod.schematic": "Schematics & Clipboard (K)",
-
-  "item.mogdops-mod.staff": "Creative Staff",
-  "block.mogdops-mod.mob_spawner_slab": "Mob Spawner Slab",
-  "item.mogdops-mod.mob_spawner_slab": "Mob Spawner Slab",
-  "entity.mogdops-mod.image_display": "Image Display",
-
+  "item.mogdopsmod.staff": "Creative Staff",
+  "block.mogdopsmod.mob_spawner_slab": "Mob Spawner Slab",
+  "item.mogdopsmod.mob_spawner_slab": "Mob Spawner Slab",
+  "entity.mogdopsmod.image_display": "Image Display",
   "text.config.mogdops-mod": "MogDop's Mod Configuration",
   "text.config.mogdops-mod.palette": "Color Palette",
   "text.config.mogdops-mod.save": "Save",
@@ -40,13 +38,11 @@
   "text.config.mogdops-mod.option.toolExplosionPower.tooltip": "Explosion shockwave strength of the tool gun.",
   "text.config.mogdops-mod.option.toolSelectionColor": "Selection Outline Color",
   "text.config.mogdops-mod.option.toolSelectionColor.tooltip": "HEX color code for the WorldEdit selection outline (e.g., #FFAA00).",
-
   "mogdops-mod.tab.main": "★ Main",
   "mogdops-mod.tab.mobs": "👾 Mobs",
   "mogdops-mod.tab.items": "📦 Items",
   "mogdops-mod.tab.utilities": "⚡ Utilities",
   "mogdops-mod.tab.settings": "⚙ Settings",
-
   "mogdops-mod.main_tab.subtitle": "Sandbox Toolkit & WorldEdit Controls",
   "mogdops-mod.main_tab.info1": "Garry's Mod style sandbox toolkit & official WorldEdit API integration.",
   "mogdops-mod.main_tab.info2": "Hold H to open the 360-degree radial WorldEdit quick action bar.",
@@ -54,7 +50,6 @@
   "mogdops-mod.main_tab.info4": "Creative Staff: Left-Click sets pos1; Right-Click sets pos2 / adds polygon vertices.",
   "mogdops-mod.main_tab.info5": "Hold Alt + Scroll wheel to expand selection faces; Hold Ctrl + Scroll to switch Staff modes.",
   "mogdops-mod.main_tab.info6": "Press K to open the Schematics & Clipboard Manager menu.",
-
   "mogdops-mod.image.title": "★ Image Selection & Placement ★",
   "mogdops-mod.image.search": "Search by filename...",
   "mogdops-mod.image.open_folder": "Open Folder",
@@ -72,7 +67,6 @@
   "mogdops-mod.image.pos1_set": "§a[Image] Point 1: (%s) on face %s",
   "mogdops-mod.image.pos2_set": "§b[Image] Point 2: (%s)",
   "mogdops-mod.image.need_pos1": "§c[Image] First set point 1 (LMB)!",
-
   "mogdops-mod.schematic.title": "★ Schematics & Clipboard Manager ★",
   "mogdops-mod.schematic.save_header": "Save Current Clipboard:",
   "mogdops-mod.schematic.btn_save": "Save (.schem)",
@@ -84,70 +78,59 @@
   "mogdops-mod.schematic.browser_title": "WorldEdit Schematics",
   "mogdops-mod.schematic.btn_load": "Load",
   "mogdops-mod.schematic.no_files": "No .schem files in worldedit/schematics/",
-
   "mogdops-mod.welcome.main_title": "★ Welcome to MogDop's Mod ★",
   "mogdops-mod.welcome.prev": "Previous",
   "mogdops-mod.welcome.next": "Next",
   "mogdops-mod.welcome.finish": "★ Get Started",
   "mogdops-mod.welcome.page_count": "Page %s / %s",
-
   "mogdops-mod.welcome.page1.title": "Overview & Concepts",
   "mogdops-mod.welcome.page1.category": "Introduction",
   "mogdops-mod.welcome.page1.text1": "Welcome! MogDop's Mod is a Garry's Mod style sandbox toolkit and WorldEdit extension.",
   "mogdops-mod.welcome.page1.text2": "It combines building tools, entity editors, custom item generators, and world controls into clean UI screens.",
   "mogdops-mod.welcome.page1.text3": "All building actions support full Undo and Redo history.",
-
   "mogdops-mod.welcome.page2.title": "Creative Staff & Multi-Tool",
   "mogdops-mod.welcome.page2.category": "Tools",
   "mogdops-mod.welcome.page2.text1": "Left-Click sets Pos 1; Right-Click sets Pos 2 or adds polygon vertex points.",
   "mogdops-mod.welcome.page2.text2": "Hold Alt and scroll mouse wheel to smoothly expand or contract the targeted selection face.",
   "mogdops-mod.welcome.page2.text3": "Hold Ctrl and scroll mouse wheel to switch Staff modes (Selection, Remover, Explosion, Teleport, Spawner, Schematics, Images).",
   "mogdops-mod.welcome.page2.text4": "Visual 3D wireframe outline renders dynamically in world space with custom config colors.",
-
   "mogdops-mod.welcome.page3.title": "Radial Quick Action Bar (Key H)",
   "mogdops-mod.welcome.page3.category": "WorldEdit Bar",
   "mogdops-mod.welcome.page3.text1": "Hold H to open the 360-degree radial Quick Action Bar.",
   "mogdops-mod.welcome.page3.text2": "Move mouse around the circular layout; 3D cube cursor smoothly tracks your selection.",
   "mogdops-mod.welcome.page3.text3": "Includes //set, //replace, Undo, Redo, Walls, Outline, Stack, Drain, and Clear Selection.",
-
   "mogdops-mod.welcome.page4.title": "Selection Modes (Key J)",
   "mogdops-mod.welcome.page4.category": "Selection Modes",
   "mogdops-mod.welcome.page4.text1": "Press J to open the WorldEdit Selection Mode wheel.",
   "mogdops-mod.welcome.page4.text2": "Cuboid Mode: Standard 2-point box selection (pos1 & pos2).",
   "mogdops-mod.welcome.page4.text3": "Poly Mode (2D): Multi-point 2D polygon with vertical Y extrusion.",
   "mogdops-mod.welcome.page4.text4": "Convex Mode (3D): 3D convex hull wireframe bounds defined by point vertices.",
-
   "mogdops-mod.welcome.page5.title": "Spawner & Mob Editor (Key ~)",
   "mogdops-mod.welcome.page5.category": "Entities",
   "mogdops-mod.welcome.page5.text1": "Press ~ (Tilde) to open the Spawner GUI with live 3D entity models.",
   "mogdops-mod.welcome.page5.text2": "Mob Editor: Customize names, visibility, gravity, silence, glowing, baby status, slime size, and fire ticks.",
   "mogdops-mod.welcome.page5.text3": "Spawn customized entities instantly or use the Staff Spawner mode.",
-
   "mogdops-mod.welcome.page6.title": "Item Creator & Player Cheats",
   "mogdops-mod.welcome.page6.category": "Utilities",
   "mogdops-mod.welcome.page6.text1": "Item Creator: Modify item names, max stack sizes, durability, unbreakable status, and enchantments.",
   "mogdops-mod.welcome.page6.text2": "World & Player Tabs: Toggle Day/Night, Weather, Survival Flight, Speed III, Strength III, and clear status effects.",
   "mogdops-mod.welcome.page6.text3": "Entity Killer Tab: Scan and purge nearby entities by type or UUID.",
-
   "mogdops-mod.welcome.page7.title": "Mob Spawner Slab & Config",
   "mogdops-mod.welcome.page7.category": "Blocks & Config",
   "mogdops-mod.welcome.page7.text1": "Mob Spawner Slab: Functional block for automated entity spawning. Right-click to open configuration screen.",
   "mogdops-mod.welcome.page7.text2": "Configure mob ID, spawn interval (sec), max active limit, spawn radius, and active toggle.",
   "mogdops-mod.welcome.page7.text3": "Type /md settings to adjust UI theme color, opacity, chat hiding, and selection particle settings.",
-
   "mogdops-mod.error.positions_not_set": "§c[MogDopWE] Error: First set both positions using the Creative Staff!",
   "mogdops-mod.tool.mode_changed": "§6[MogDopWE] Staff Mode: §b%s",
   "mogdops-mod.command.setblock.success": "§a[MogDopWE] Active block changed to: %s (%s)",
   "mogdops-mod.command.setblock.invalid": "§c[MogDopWE] Invalid block ID: %s",
   "mogdops-mod.command.blockset.error": "§c[MogDopWE] Error: Please look at a block!",
   "mogdops-mod.command.set.success": "§a[MogDopWE] Fill area request sent!",
-
   "mogdops-mod.hud.multitool": "Creative Staff",
   "mogdops-mod.hud.mode": "Mode: %s",
   "mogdops-mod.hud.pos1": "Pos 1: %s",
   "mogdops-mod.hud.pos2": "Pos 2: %s",
   "mogdops-mod.hud.not_set": "Not Set",
-
   "mogdops-mod.selection.pos1": "Position 1: %s",
   "mogdops-mod.selection.pos2": "Position 2: %s",
   "mogdops-mod.selection.pos1_set": "First position set at %s.",
@@ -155,7 +138,6 @@
   "mogdops-mod.selection.point_added": "Point #%s set at %s.",
   "mogdops-mod.selection.point_removed": "Point #%s removed.",
   "mogdops-mod.selection.cleared": "Selection cleared.",
-
   "mogdops-mod.tool_selector.title": "★ Creative Staff Settings ★",
   "mogdops-mod.tool_selector.modes": "Modes:",
   "mogdops-mod.tool_selector.properties": "Properties: %s",
@@ -184,7 +166,6 @@
   "mogdops-mod.tool_selector.mode.image.desc": "Pixel-precise (16x16) planar selection for placing images.",
   "mogdops-mod.tool_selector.selected_mob": "Selected Mob: §b%s",
   "mogdops-mod.tool_selector.open_spawner": "Open Mobs List",
-
   "mogdops-mod.selection_mode.title": "★ WorldEdit Selection Mode ★",
   "mogdops-mod.selection_mode.cuboid": "Cuboid",
   "mogdops-mod.selection_mode.cuboid.desc": "Default 2-point box selection (pos1 & pos2)",
@@ -192,13 +173,11 @@
   "mogdops-mod.selection_mode.poly.desc": "2D polygonal area selection with vertical extrusion",
   "mogdops-mod.selection_mode.convex": "Convex Hull",
   "mogdops-mod.selection_mode.convex.desc": "3D convex hull selection defined by vertex points",
-
   "mogdops-mod.tab.tools": "Tools",
   "mogdops-mod.tab.worldedit": "Staff",
   "mogdops-mod.tab.world": "World",
   "mogdops-mod.tab.player": "Player",
   "mogdops-mod.tab.kill_entities": "Kill Entities",
-
   "mogdops-mod.search": "Search:",
   "mogdops-mod.category": "Category:",
   "mogdops-mod.include_misc": "Include Misc",
@@ -207,10 +186,8 @@
   "mogdops-mod.category.hostile": "Hostile",
   "mogdops-mod.category.passive": "Passive",
   "mogdops-mod.category.ambient": "Water/Ambient",
-
   "mogdops-mod.context.spawn_toolgun": "Spawn with Staff",
   "mogdops-mod.context.edit_nbt": "Edit Properties",
-
   "mogdops-mod.mob_editor.title": "Mob Editor:",
   "mogdops-mod.mob_editor.custom_name": "Custom Name:",
   "mogdops-mod.mob_editor.name_visible": "Name Always Visible:",
@@ -222,7 +199,6 @@
   "mogdops-mod.mob_editor.fire_ticks": "On Fire (seconds):",
   "mogdops-mod.mob_editor.spawn_click": "SPAWN (CLICK)",
   "mogdops-mod.mob_editor.spawn_toolgun_btn": "SPAWN WITH STAFF",
-
   "mogdops-mod.item_creator.modifier.custom_name": "Custom Name",
   "mogdops-mod.item_creator.modifier.max_stack": "Max Stack Size",
   "mogdops-mod.item_creator.modifier.damage": "Item Damage",
@@ -236,14 +212,12 @@
   "mogdops-mod.item_creator.preview": "Item Preview:",
   "mogdops-mod.item_creator.count": "Count:",
   "mogdops-mod.item_creator.give_item": "GIVE ITEM",
-
   "mogdops-mod.tool.remover.name": "§cBlock Remover",
   "mogdops-mod.tool.remover.short_name": "§cRemover",
   "mogdops-mod.tool.explosion.name": "§eExplosive Pistol",
   "mogdops-mod.tool.teleport.name": "§bTeleporter",
   "mogdops-mod.tools.instruction1": "Hold Ctrl and scroll mouse wheel,",
   "mogdops-mod.tools.instruction2": "to switch Creative Staff modes!",
-
   "mogdops-mod.tool.selection_axe.name": "§6MogDop: Creative Staff",
   "mogdops-mod.worldedit.get_staff": "Get Creative Staff",
   "mogdops-mod.worldedit.get_axe": "Get Creative Staff",
@@ -253,17 +227,14 @@
   "mogdops-mod.worldedit.pos1_status": "Position 1: %s",
   "mogdops-mod.worldedit.pos2_status": "Position 2: %s",
   "mogdops-mod.worldedit.active_block": "Active Block: %s",
-
   "mogdops-mod.world.day": "Set Day Time",
   "mogdops-mod.world.night": "Set Night Time",
   "mogdops-mod.world.clear_weather": "Weather: Clear",
   "mogdops-mod.world.rain": "Weather: Rain",
-
   "mogdops-mod.player.fly": "Survival Flight",
   "mogdops-mod.player.speed": "Speed III Boost",
   "mogdops-mod.player.strength": "Strength III Boost",
   "mogdops-mod.player.clear": "Clear All Statuses",
-
   "mogdops-mod.settings.style": "UI Style: %s",
   "mogdops-mod.settings.style.vanilla": "Vanilla",
   "mogdops-mod.settings.style.flat": "Flat",
@@ -273,11 +244,9 @@
   "mogdops-mod.settings.color.emerald": "Emerald Green",
   "mogdops-mod.settings.color.ruby": "Ruby Red",
   "mogdops-mod.settings.color.sapphire": "Sapphire Blue",
-
   "mogdops-mod.killer.scan": "Rescan Area",
   "mogdops-mod.killer.grouped": "Grouped (RMB split)",
   "mogdops-mod.killer.individual": "Individual (RMB group)",
-
   "mogdops-mod.block_selector.title_fill": "★ Fill Area (Set) ★",
   "mogdops-mod.block_selector.title_walls": "★ Build Walls ★",
   "mogdops-mod.block_selector.title_outline": "★ Create Outline ★",
@@ -291,7 +260,6 @@
   "mogdops-mod.block_selector.search": "Search: ",
   "mogdops-mod.block_selector.current": "Active: %s",
   "mogdops-mod.block_selector.changed": "§a[MogDopWE] Active block set to: %s",
-
   "mogdops-mod.quick_select.title": "★ WorldEdit Quick Action Radial Menu ★",
   "mogdops-mod.quick_select.hint": "Move mouse around the circle to select action • Release H or click to execute",
   "mogdops-mod.quick_select.set": "//set",
@@ -312,7 +280,6 @@
   "mogdops-mod.quick_select.stack.desc": "Duplicates selection in facing direction",
   "mogdops-mod.quick_select.drain": "Drain",
   "mogdops-mod.quick_select.drain.desc": "Drains liquids in 10-block radius around player",
-
   "mogdops-mod.replace_screen.title": "★ Replace Blocks ★",
   "mogdops-mod.replace_screen.target_block": "Target Block:",
   "mogdops-mod.replace_screen.replacement_block": "Replacement Block:",
@@ -322,7 +289,6 @@
   "mogdops-mod.replace_screen.btn_active": "Active",
   "mogdops-mod.replace_screen.btn_browse": "Browse",
   "mogdops-mod.replace_screen.btn_replace": "REPLACE (Enter)",
-
   "mogdops-mod.server.limit_exceeded": "§c[WorldEdit API] Selection limit exceeded (max 100,000 blocks)!",
   "mogdops-mod.server.filled_success": "§a[WorldEdit API] Successfully filled %s blocks.",
   "mogdops-mod.server.replace_success": "§a[WorldEdit API] Successfully replaced %s blocks.",
@@ -336,7 +302,6 @@
   "mogdops-mod.server.stack_success": "§a[WorldEdit API] Successfully stacked selection %s times (%s blocks).",
   "mogdops-mod.server.drain_empty": "§e[WorldEdit API] No liquids found nearby to drain.",
   "mogdops-mod.server.drain_success": "§a[WorldEdit API] Successfully drained %s liquid blocks.",
-
   "mogdops-mod.server.copy_success": "§a[WorldEdit API] Successfully copied %s blocks to clipboard.",
   "mogdops-mod.server.paste_success": "§a[WorldEdit API] Successfully pasted clipboard content.",
   "mogdops-mod.server.rotate_success": "§a[WorldEdit API] Rotated clipboard by %s degrees.",
@@ -344,9 +309,7 @@
   "mogdops-mod.server.schematic_loaded": "§a[WorldEdit API] Loaded schematic %s into clipboard.",
   "mogdops-mod.server.schematic_not_found": "§c[WorldEdit API] Schematic file %s not found.",
   "mogdops-mod.server.clipboard_empty": "§c[WorldEdit API] Clipboard is currently empty!",
-
   "mogdops-mod.chat.placeholder": "Type a message or command...",
-
   "mogdops-mod.mob_spawner_slab.title": "★ Mob Spawner Slab Configuration ★",
   "mogdops-mod.mob_spawner_slab.active": "Enable Spawner:",
   "mogdops-mod.mob_spawner_slab.entity_id": "Entity ID:",
@@ -361,8 +324,18 @@
   "mogdops-mod.mob_spawner_slab.back": "Back",
   "mogdops-mod.utilities.worldedit_shortcuts": "★ WorldEdit Shortcuts",
   "mogdops-mod.utilities.cheats": "★ World & Player Cheats",
-
   "mogdops-mod.schematic.loaded_preview": "§a[MogDopWE] Loaded schematic %s (%dx%dx%d). Aim with staff to move!",
   "mogdops-mod.hud.schematic_preview": "Schematic: %s (%dx%dx%d)",
-  "mogdops-mod.hud.schematic_instruction": "Click — Place & Paste Schematic"
+  "mogdops-mod.hud.schematic_instruction": "Click — Place & Paste Schematic",
+  "itemGroup.mogdopsmod.main": "MogDop's Mod",
+  "mogdops-mod.image.editor_title": "Image Editor",
+  "mogdops-mod.image.browse": "Browse...",
+  "mogdops-mod.image.width": "Width",
+  "mogdops-mod.image.height": "Height",
+  "mogdops-mod.image.lock": "Link: %s",
+  "mogdops-mod.image.offset_x": "Offset X",
+  "mogdops-mod.image.offset_y": "Offset Y",
+  "mogdops-mod.image.fit_aspect": "Fit Aspect",
+  "mogdops-mod.image.cancel": "Cancel",
+  "mogdops-mod.image.pick": "SELECT"
 }
