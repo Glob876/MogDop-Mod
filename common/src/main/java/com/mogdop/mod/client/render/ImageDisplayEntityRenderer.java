@@ -125,6 +125,19 @@ public class ImageDisplayEntityRenderer extends EntityRenderer<ImageDisplayEntit
             }
         }
 
+        // Поворот относительно центра картинки (в плоскости грани)
+        float angle = entity.getRotation();
+        if (angle != 0f) {
+            Vec3d center = new Vec3d(
+                    (c0.x + c1.x + c2.x + c3.x) / 4.0,
+                    (c0.y + c1.y + c2.y + c3.y) / 4.0,
+                    (c0.z + c1.z + c2.z + c3.z) / 4.0);
+            c0 = ImageDisplayEntity.rotateAroundCenter(c0, center, side, angle);
+            c1 = ImageDisplayEntity.rotateAroundCenter(c1, center, side, angle);
+            c2 = ImageDisplayEntity.rotateAroundCenter(c2, center, side, angle);
+            c3 = ImageDisplayEntity.rotateAroundCenter(c3, center, side, angle);
+        }
+
         // Передняя грань (текстура)
         drawVertex(buffer, mat, c0, 0f, 0f, nx, ny, nz, renderLight);
         drawVertex(buffer, mat, c1, 1f, 0f, nx, ny, nz, renderLight);

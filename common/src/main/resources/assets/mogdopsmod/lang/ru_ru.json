@@ -337,5 +337,6 @@
   "mogdops-mod.image.offset_y": "Сдвиг Y",
   "mogdops-mod.image.fit_aspect": "По пропорциям",
   "mogdops-mod.image.cancel": "Отмена",
-  "mogdops-mod.image.pick": "ВЫБРАТЬ"
+  "mogdops-mod.image.pick": "ВЫБРАТЬ",
+  "mogdops-mod.image.rotation": "Поворот"
 }

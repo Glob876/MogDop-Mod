@@ -392,7 +392,8 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
                         selectedFilename,
                         p1.x, p1.y, p1.z,
                         p2.x, p2.y, p2.z,
-                        MogDopSModClient.imageSide.getId()
+                        MogDopSModClient.imageSide.getId(),
+                        0f
                 ));
                 MinecraftClient client = MinecraftClient.getInstance();
                 if (client.player != null) {

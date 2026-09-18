@@ -106,6 +106,8 @@ public class MogDopSModClient {
     public static Vec3d imagePos1 = null;
     public static Vec3d imagePos2 = null;
     public static Direction imageSide = Direction.UP;
+    /** Поворот черновика/картинки вокруг центра (градусы, против часовой в плоскости грани). */
+    public static float imageRotation = 0f;
 
     public static final List<BlockPos> selectionPoints = new ArrayList<>();
 

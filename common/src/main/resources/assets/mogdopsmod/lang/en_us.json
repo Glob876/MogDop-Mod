@@ -337,5 +337,6 @@
   "mogdops-mod.image.offset_y": "Offset Y",
   "mogdops-mod.image.fit_aspect": "Fit Aspect",
   "mogdops-mod.image.cancel": "Cancel",
-  "mogdops-mod.image.pick": "SELECT"
+  "mogdops-mod.image.pick": "SELECT",
+  "mogdops-mod.image.rotation": "Rotation"
 }

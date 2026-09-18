@@ -2,6 +2,7 @@ package com.mogdop.mod.client.gui;
 
 import com.mogdop.mod.client.MogDopSModClient;
 import com.mogdop.mod.client.render.ClientImageTextureManager;
+import com.mogdop.mod.entity.ImageDisplayEntity;
 import com.mogdop.mod.network.SpawnImagePayload;
 import dev.architectury.networking.NetworkManager;
 import dev.architectury.platform.Platform;
@@ -42,8 +43,16 @@ public class ImageEditorPanelScreen extends Screen {
     private double picH = 2.0;
     private double offU = 0.0;
     private double offV = 0.0;
+    private double angleDeg = 0.0;
     private boolean dimensionsLinked = false;
     private double linkedAspect = 1.0;
+
+    // Центр прямоугольника на плоскости грани — все размеры/сдвиги/поворот идут от него.
+    // Поэтому порядок выбора точек (сверху/снизу) не переворачивает выделение.
+    private double centerU = 0.0;
+    private double centerV = 0.0;
+    private double planeC = 0.0;
+    private boolean centerInit = false;
 
     private SizeSlider widthSlider;
     private SizeSlider heightSlider;
@@ -149,44 +158,45 @@ public class ImageEditorPanelScreen extends Screen {
         return (double) info.height() / (double) info.width();
     }
 
-    /** Пересчитать imagePos2 из якоря p1 + ширина/высота/сдвиги на плоскости грани. */
+    /** Пересчитать углы из центра + размер/сдвиг. Размеры симметричны от центра. */
     private void pushRect() {
-        Vec3d p1 = MogDopSModClient.imagePos1;
         Direction side = MogDopSModClient.imageSide;
-        if (p1 == null || side == null) return;
+        if (side == null || !centerInit) return;
 
-        double u = MogDopSModClient.snap16(offU);
-        double v = MogDopSModClient.snap16(offV);
         double w = Math.max(0.0625, picW);
         double h = Math.max(0.0625, picH);
+        double cu = MogDopSModClient.snap16(centerU + offU);
+        double cv = MogDopSModClient.snap16(centerV + offV);
+        double u1 = MogDopSModClient.snap16(cu - w / 2.0);
+        double u2 = MogDopSModClient.snap16(cu + w / 2.0);
+        double v1 = MogDopSModClient.snap16(cv - h / 2.0);
+        double v2 = MogDopSModClient.snap16(cv + h / 2.0);
 
-        double x1 = p1.x, y1 = p1.y, z1 = p1.z;
-        double x2 = x1, y2 = y1, z2 = z1;
-        switch (side.getAxis()) {
-            case Y -> {
-                x1 = MogDopSModClient.snap16(p1.x + u);
-                z1 = MogDopSModClient.snap16(p1.z + v);
-                x2 = MogDopSModClient.snap16(x1 + w);
-                z2 = MogDopSModClient.snap16(z1 + h);
-                y2 = y1;
-            }
-            case Z -> {
-                x1 = MogDopSModClient.snap16(p1.x + u);
-                y1 = MogDopSModClient.snap16(p1.y + v);
-                x2 = MogDopSModClient.snap16(x1 + w);
-                y2 = MogDopSModClient.snap16(y1 + h);
-                z2 = z1;
-            }
-            case X -> {
-                z1 = MogDopSModClient.snap16(p1.z + u);
-                y1 = MogDopSModClient.snap16(p1.y + v);
-                z2 = MogDopSModClient.snap16(z1 + w);
-                y2 = MogDopSModClient.snap16(y1 + h);
-                x2 = x1;
-            }
+        MogDopSModClient.imagePos1 = ImageDisplayEntity.fromUV(u1, v1, planeC, side);
+        MogDopSModClient.imagePos2 = ImageDisplayEntity.fromUV(u2, v2, planeC, side);
+        MogDopSModClient.imageRotation = (float) angleDeg;
+    }
+
+    /** Запомнить центр из текущих точек (порядок точек не важен). */
+    private void initCenterFromPoints() {
+        Vec3d p1 = MogDopSModClient.imagePos1;
+        Vec3d p2 = MogDopSModClient.imagePos2;
+        Direction side = MogDopSModClient.imageSide;
+        if (p1 == null || side == null) return;
+        if (p2 == null) p2 = p1;
+        double[] uv1 = ImageDisplayEntity.toUV(p1, side);
+        double[] uv2 = ImageDisplayEntity.toUV(p2, side);
+        centerU = (uv1[0] + uv2[0]) / 2.0;
+        centerV = (uv1[1] + uv2[1]) / 2.0;
+        planeC = ImageDisplayEntity.planeCoord(p1, side);
+        double w = Math.abs(uv2[0] - uv1[0]);
+        double h = Math.abs(uv2[1] - uv1[1]);
+        if (w >= 0.0625 && h >= 0.0625) {
+            picW = Math.min(64.0, w);
+            picH = Math.min(64.0, h);
         }
-        MogDopSModClient.imagePos1 = new Vec3d(x1, y1, z1);
-        MogDopSModClient.imagePos2 = new Vec3d(x2, y2, z2);
+        centerInit = true;
+        pushRect();
     }
 
     private void setPictureWidth(double value) {
@@ -245,26 +255,11 @@ public class ImageEditorPanelScreen extends Screen {
             fitAspect();
         }
 
-        // Инициализация размеров из текущих точек (если p2 уже выставлена в мире)
-        Vec3d p1 = MogDopSModClient.imagePos1;
-        Vec3d p2 = MogDopSModClient.imagePos2;
-        if (p1 != null && p2 != null) {
-            Direction side = MogDopSModClient.imageSide;
-            double w, h;
-            if (side.getAxis() == Direction.Axis.Y) {
-                w = Math.abs(p2.x - p1.x);
-                h = Math.abs(p2.z - p1.z);
-            } else if (side.getAxis() == Direction.Axis.Z) {
-                w = Math.abs(p2.x - p1.x);
-                h = Math.abs(p2.y - p1.y);
-            } else {
-                w = Math.abs(p2.z - p1.z);
-                h = Math.abs(p2.y - p1.y);
-            }
-            if (w >= 0.0625 && h >= 0.0625) {
-                picW = Math.min(64.0, w);
-                picH = Math.min(64.0, h);
-            }
+        // Центр берём один раз из точек мира — дальше всё (размер, сдвиг, поворот) идёт от него,
+        // поэтому порядок выбора точек сверху/снизу уже не переворачивает выделение.
+        if (!centerInit) {
+            initCenterFromPoints();
+            angleDeg = MogDopSModClient.imageRotation;
         }
 
         int pw = panelW();
@@ -339,6 +334,12 @@ public class ImageEditorPanelScreen extends Screen {
         }));
         y += SLIDER_H + GAP;
 
+        track(new SizeSlider(bx, y, bw, SLIDER_H, Text.translatable("mogdops-mod.image.rotation"), -180.0, 180.0, angleDeg, v -> {
+            angleDeg = v;
+            MogDopSModClient.imageRotation = (float) angleDeg;
+        }));
+        y += SLIDER_H + GAP;
+
         track(flatButton(bx, y, bw, BTN_H, Text.translatable("mogdops-mod.image.fit_aspect"), b -> {
             fitAspect();
             this.init(this.client, this.width, this.height);
@@ -360,7 +361,7 @@ public class ImageEditorPanelScreen extends Screen {
         if (file != null && p1 != null && p2 != null) {
             NetworkManager.sendToServer(new SpawnImagePayload(
                     file, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z,
-                    MogDopSModClient.imageSide.getId()));
+                    MogDopSModClient.imageSide.getId(), (float) angleDeg));
             if (client.player != null) {
                 client.player.sendMessage(Text.translatable("mogdops-mod.image.placed_success", file), true);
             }

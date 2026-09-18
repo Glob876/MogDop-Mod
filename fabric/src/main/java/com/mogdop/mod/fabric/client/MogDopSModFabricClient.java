@@ -245,6 +245,15 @@ public class MogDopSModFabricClient implements ClientModInitializer {
                         }
                     }
 
+                    // Поворот черновика относительно центра (как у размещённой картинки)
+                    if (MogDopSModClient.imageRotation != 0f) {
+                        Vec3d center = new Vec3d((c0.x + c1.x + c2.x + c3.x) / 4.0, (c0.y + c1.y + c2.y + c3.y) / 4.0, (c0.z + c1.z + c2.z + c3.z) / 4.0);
+                        c0 = com.mogdop.mod.entity.ImageDisplayEntity.rotateAroundCenter(c0, center, MogDopSModClient.imageSide, MogDopSModClient.imageRotation);
+                        c1 = com.mogdop.mod.entity.ImageDisplayEntity.rotateAroundCenter(c1, center, MogDopSModClient.imageSide, MogDopSModClient.imageRotation);
+                        c2 = com.mogdop.mod.entity.ImageDisplayEntity.rotateAroundCenter(c2, center, MogDopSModClient.imageSide, MogDopSModClient.imageRotation);
+                        c3 = com.mogdop.mod.entity.ImageDisplayEntity.rotateAroundCenter(c3, center, MogDopSModClient.imageSide, MogDopSModClient.imageRotation);
+                    }
+
                     VertexConsumer quads = consumers.getBuffer(MogDopSModClient.SELECTION_QUADS);
                     MatrixStack.Entry entry = matrices.peek();
                     quads.vertex(entry, (float)c0.x, (float)c0.y, (float)c0.z).color(0.0F, 0.8F, 1.0F, 0.35F);

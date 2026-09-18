@@ -10,7 +10,8 @@ public record SpawnImagePayload(
         String imageName,
         double p1x, double p1y, double p1z,
         double p2x, double p2y, double p2z,
-        int facingId
+        int facingId,
+        float rotation
 ) implements CustomPayload {
 
     public static final Id<SpawnImagePayload> ID = new Id<>(Identifier.of("mogdopsmod", "spawn_image"));
@@ -26,6 +27,7 @@ public record SpawnImagePayload(
             PacketCodecs.DOUBLE.encode(buf, value.p2y());
             PacketCodecs.DOUBLE.encode(buf, value.p2z());
             PacketCodecs.INTEGER.encode(buf, value.facingId());
+            PacketCodecs.FLOAT.encode(buf, value.rotation());
         }
 
         @Override
@@ -38,7 +40,8 @@ public record SpawnImagePayload(
                     PacketCodecs.DOUBLE.decode(buf),
                     PacketCodecs.DOUBLE.decode(buf),
                     PacketCodecs.DOUBLE.decode(buf),
-                    PacketCodecs.INTEGER.decode(buf)
+                    PacketCodecs.INTEGER.decode(buf),
+                    PacketCodecs.FLOAT.decode(buf)
             );
         }
     };

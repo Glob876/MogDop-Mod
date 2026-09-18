@@ -132,7 +132,7 @@ public class MogDopSMod {
                     Vec3d p1 = new Vec3d(payload.p1x(), payload.p1y(), payload.p1z());
                     Vec3d p2 = new Vec3d(payload.p2x(), payload.p2y(), payload.p2z());
                     Direction facing = Direction.byId(payload.facingId());
-                    entity.setImageData(payload.imageName(), p1, p2, facing);
+                    entity.setImageData(payload.imageName(), p1, p2, facing, payload.rotation());
                     world.spawnEntity(entity);
                 }
             });
