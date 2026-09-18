@@ -16,7 +16,7 @@ public record OpenMobSpawnerSlabScreenPayload(
         int spawnRange
 ) implements CustomPayload {
     
-    public static final Id<OpenMobSpawnerSlabScreenPayload> ID = new Id<>(Identifier.of("mogdops-mod", "open_mob_spawner_slab_screen"));
+    public static final Id<OpenMobSpawnerSlabScreenPayload> ID = new Id<>(Identifier.of("mogdopsmod", "open_mob_spawner_slab_screen"));
     
     public static final PacketCodec<RegistryByteBuf, OpenMobSpawnerSlabScreenPayload> CODEC = new PacketCodec<RegistryByteBuf, OpenMobSpawnerSlabScreenPayload>() {
         @Override

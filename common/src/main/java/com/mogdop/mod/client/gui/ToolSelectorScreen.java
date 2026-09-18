@@ -244,7 +244,7 @@ public class ToolSelectorScreen extends BaseOwoScreen<FlowLayout> {
                 rightConfigPanel.child(Components.label(Text.translatable("mogdops-mod.tool_selector.mode.image.desc")).color(Color.ofArgb(0xFFBBBBBB)));
                 FlowLayout openImgBtn = createFlatButton(180, 24, Text.translatable("mogdops-mod.image.title"), () -> {
                     this.close();
-                    MinecraftClient.getInstance().setScreen(new ImageSelectorScreen());
+                    MinecraftClient.getInstance().setScreen(new ImageEditorPanelScreen());
                 });
                 rightConfigPanel.child(openImgBtn.margins(Insets.top(10)));
             }

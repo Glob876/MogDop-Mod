@@ -7,7 +7,7 @@ import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.util.Identifier;
 
 public record SchematicPreviewPayload(int sizeX, int sizeY, int sizeZ, String filename) implements CustomPayload {
-    public static final CustomPayload.Id<SchematicPreviewPayload> ID = new CustomPayload.Id<>(Identifier.of("mogdops-mod", "schematic_preview"));
+    public static final CustomPayload.Id<SchematicPreviewPayload> ID = new CustomPayload.Id<>(Identifier.of("mogdopsmod", "schematic_preview"));
 
     public static final PacketCodec<RegistryByteBuf, SchematicPreviewPayload> CODEC = PacketCodec.tuple(
             PacketCodecs.INTEGER, SchematicPreviewPayload::sizeX,

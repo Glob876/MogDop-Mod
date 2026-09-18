@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public record FillAreaPayload(List<BlockPos> points, int selectionMode, String blockId) implements CustomPayload {
-    public static final CustomPayload.Id<FillAreaPayload> ID = new CustomPayload.Id<>(Identifier.of("mogdops-mod", "fill_area"));
+    public static final CustomPayload.Id<FillAreaPayload> ID = new CustomPayload.Id<>(Identifier.of("mogdopsmod", "fill_area"));
 
     public static final PacketCodec<RegistryByteBuf, FillAreaPayload> CODEC = new PacketCodec<>() {
         @Override

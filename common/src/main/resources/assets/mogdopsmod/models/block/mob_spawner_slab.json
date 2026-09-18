@@ -1,8 +1,8 @@
 {
 	"credit": "Made with Blockbench",
 	"textures": {
-		"0": "mogdops-mod:block/mob_spawner_slab",
-		"particle": "mogdops-mod:block/mob_spawner_slab"
+		"0": "mogdopsmod:block/mob_spawner_slab",
+		"particle": "mogdopsmod:block/mob_spawner_slab"
 	},
 	"elements": [
 		{

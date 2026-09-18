@@ -8,7 +8,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 
 public record StackPayload(BlockPos pos1, BlockPos pos2, int count, String directionStr) implements CustomPayload {
-    public static final CustomPayload.Id<StackPayload> ID = new CustomPayload.Id<>(Identifier.of("mogdops-mod", "stack"));
+    public static final CustomPayload.Id<StackPayload> ID = new CustomPayload.Id<>(Identifier.of("mogdopsmod", "stack"));
 
     public static final PacketCodec<RegistryByteBuf, StackPayload> CODEC = new PacketCodec<>() {
         @Override

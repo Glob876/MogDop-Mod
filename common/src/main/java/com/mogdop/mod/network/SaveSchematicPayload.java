@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public record SaveSchematicPayload(String filename, List<BlockPos> points, int selectionMode) implements CustomPayload {
-    public static final CustomPayload.Id<SaveSchematicPayload> ID = new CustomPayload.Id<>(Identifier.of("mogdops-mod", "save_schematic"));
+    public static final CustomPayload.Id<SaveSchematicPayload> ID = new CustomPayload.Id<>(Identifier.of("mogdopsmod", "save_schematic"));
 
     public static final PacketCodec<RegistryByteBuf, SaveSchematicPayload> CODEC = new PacketCodec<>() {
         @Override

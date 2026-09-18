@@ -8,7 +8,7 @@ import net.minecraft.util.Identifier;
 
 public record KillEntityPayload(String entityUuidStr, String entityTypeId, boolean killAll) implements CustomPayload {
     
-    public static final CustomPayload.Id<KillEntityPayload> ID = new CustomPayload.Id<>(Identifier.of("mogdops-mod", "kill_entity"));
+    public static final CustomPayload.Id<KillEntityPayload> ID = new CustomPayload.Id<>(Identifier.of("mogdopsmod", "kill_entity"));
     
     public static final PacketCodec<RegistryByteBuf, KillEntityPayload> CODEC = PacketCodec.tuple(
             PacketCodecs.STRING, KillEntityPayload::entityUuidStr,

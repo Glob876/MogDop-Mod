@@ -7,7 +7,7 @@ import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.util.Identifier;
 
 public record PlayerActionPayload(String action) implements CustomPayload {
-    public static final CustomPayload.Id<PlayerActionPayload> ID = new CustomPayload.Id<>(Identifier.of("mogdops-mod", "player_action"));
+    public static final CustomPayload.Id<PlayerActionPayload> ID = new CustomPayload.Id<>(Identifier.of("mogdopsmod", "player_action"));
     public static final PacketCodec<RegistryByteBuf, PlayerActionPayload> CODEC = PacketCodec.tuple(
             PacketCodecs.STRING, PlayerActionPayload::action,
             PlayerActionPayload::new

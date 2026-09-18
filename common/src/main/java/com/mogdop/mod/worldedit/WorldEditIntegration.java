@@ -12,7 +12,6 @@ import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormat;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardReader;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardWriter;
-import com.sk89q.worldedit.fabric.FabricAdapter;
 import com.sk89q.worldedit.function.operation.ForwardExtentCopy;
 import com.sk89q.worldedit.function.operation.Operation;
 import com.sk89q.worldedit.function.operation.Operations;
@@ -32,14 +31,44 @@ import net.minecraft.util.math.Vec3i;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public class WorldEditIntegration {
 
+    private static final long MAX_VOLUME = 500_000L; // лимит блоков против зависания сервера
+
+    private static boolean isVolumeTooLarge(Region region) {
+        try {
+            // Region.getVolume() отсутствует в некоторых версиях — fallback на getArea
+            long vol = region.getArea();
+            if (vol > MAX_VOLUME) {
+                return true;
+            }
+        } catch (Exception ignored) {}
+        return false;
+    }
+
+    // Кроссплатформенный адаптер: FabricAdapter на Fabric, NeoForgeAdapter на NeoForge.
+    // ВАЖНО: ловим Throwable, а не Exception — загрузка чужого адаптера падает
+    // с NoClassDefFoundError (это Error, не Exception) и иначе роняет серверный тик.
     private static Player getActor(ServerPlayerEntity player) {
-        return FabricAdapter.adaptPlayer(player);
+        for (String clsName : new String[]{
+                "com.sk89q.worldedit.fabric.FabricAdapter",
+                "com.sk89q.worldedit.neoforge.NeoForgeAdapter"}) {
+            try {
+                Class<?> cls = Class.forName(clsName, false, WorldEditIntegration.class.getClassLoader());
+                for (Method m : cls.getMethods()) {
+                    if (m.getName().equals("adaptPlayer") && m.getParameterCount() == 1
+                            && m.getParameterTypes()[0].isInstance(player)) {
+                        return (Player) m.invoke(null, player);
+                    }
+                }
+            } catch (Throwable ignored) {}
+        }
+        throw new IllegalStateException("No WorldEdit adapter found for player " + player);
     }
 
     private static LocalSession getSession(ServerPlayerEntity player) {
@@ -47,7 +76,23 @@ public class WorldEditIntegration {
     }
 
     private static com.sk89q.worldedit.world.World getWorld(ServerPlayerEntity player) {
-        return FabricAdapter.adapt(player.getServerWorld());
+        Object serverWorld = player.getServerWorld();
+        // ВАЖНО: ловим Throwable, а не Exception — см. getActor выше.
+        for (String clsName : new String[]{
+                "com.sk89q.worldedit.fabric.FabricAdapter",
+                "com.sk89q.worldedit.neoforge.NeoForgeAdapter"}) {
+            try {
+                Class<?> cls = Class.forName(clsName, false, WorldEditIntegration.class.getClassLoader());
+                for (Method m : cls.getMethods()) {
+                    if (m.getName().equals("adapt") && m.getParameterCount() == 1
+                            && com.sk89q.worldedit.world.World.class.isAssignableFrom(m.getReturnType())
+                            && m.getParameterTypes()[0].isInstance(serverWorld)) {
+                        return (com.sk89q.worldedit.world.World) m.invoke(null, serverWorld);
+                    }
+                }
+            } catch (Throwable ignored) {}
+        }
+        throw new IllegalStateException("No WorldEdit adapter found for world " + serverWorld);
     }
 
     private static ParserContext createParserContext(ServerPlayerEntity player) {
@@ -214,6 +259,7 @@ public class WorldEditIntegration {
     public static void walls(ServerPlayerEntity player, List<BlockPos> points, int mode, String blockId) {
         Region region = createRegion(player, points, mode);
         if (region == null) return;
+        if (isVolumeTooLarge(region)) { player.sendMessage(net.minecraft.text.Text.literal("§c[MogDop] Область слишком большая (>"+MAX_VOLUME+") — отменено против зависания")); return; }
         com.sk89q.worldedit.world.World weWorld = getWorld(player);
         LocalSession session = getSession(player);
 
@@ -229,6 +275,7 @@ public class WorldEditIntegration {
     public static void outline(ServerPlayerEntity player, List<BlockPos> points, int mode, String blockId) {
         Region region = createRegion(player, points, mode);
         if (region == null) return;
+        if (isVolumeTooLarge(region)) { player.sendMessage(net.minecraft.text.Text.literal("§c[MogDop] Область слишком большая (>"+MAX_VOLUME+") — отменено")); return; }
         com.sk89q.worldedit.world.World weWorld = getWorld(player);
         LocalSession session = getSession(player);
 
@@ -244,6 +291,7 @@ public class WorldEditIntegration {
     public static void replaceArea(ServerPlayerEntity player, List<BlockPos> points, int mode, String targetId, String replaceId) {
         Region region = createRegion(player, points, mode);
         if (region == null) return;
+        if (isVolumeTooLarge(region)) { player.sendMessage(net.minecraft.text.Text.literal("§c[MogDop] Область слишком большая (>"+MAX_VOLUME+") — отменено")); return; }
         com.sk89q.worldedit.world.World weWorld = getWorld(player);
         LocalSession session = getSession(player);
 
@@ -260,6 +308,7 @@ public class WorldEditIntegration {
     public static void fillArea(ServerPlayerEntity player, List<BlockPos> points, int mode, String blockId) {
         Region region = createRegion(player, points, mode);
         if (region == null) return;
+        if (isVolumeTooLarge(region)) { player.sendMessage(net.minecraft.text.Text.literal("§c[MogDop] Область слишком большая (>"+MAX_VOLUME+") — отменено")); return; }
         com.sk89q.worldedit.world.World weWorld = getWorld(player);
         LocalSession session = getSession(player);
 

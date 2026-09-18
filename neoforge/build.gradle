@@ -23,14 +23,20 @@ configurations {
 
 dependencies {
     minecraft "net.minecraft:minecraft:${rootProject.minecraft_version}"
+
+    // ИСПРАВЛЕНИЕ: NeoForge ОБЯЗАН использовать официальные маппинги от Mojang!
     mappings loom.officialMojangMappings()
+
     neoForge "net.neoforged:neoforge:${rootProject.neoforge_version}"
 
     common(project(path: ":common", configuration: "namedElements")) { transitive false }
     shadowCommon(project(path: ":common", configuration: "transformProductionNeoForge")) { transitive = false }
 
-    modImplementation fileTree(dir: "${rootProject.projectDir}/libs", include: ['*.jar'])
-    annotationProcessor fileTree(dir: "${rootProject.projectDir}/libs", include: ['*.jar'])
+    // WorldEdit и остальные libs — как implementation, но FABRIC-ONLY моды исключаем (otherwise Scanning Mod Candidates виснет)
+    implementation fileTree(dir: "${rootProject.projectDir}/libs", include: ['*.jar'], exclude: ['architectury-*-fabric.jar', 'architectury-plugin*.jar', 'owo-lib*.jar', 'modmenu*.jar'])
+    annotationProcessor fileTree(dir: "${rootProject.projectDir}/libs", include: ['*.jar'], exclude: ['architectury-*-fabric.jar', 'architectury-plugin*.jar', 'owo-lib*.jar', 'modmenu*.jar'])
+    // Правильный Architectury для NeoForge — с maven
+    modImplementation "dev.architectury:architectury-neoforge:${rootProject.architectury_version}"
 
     implementation "blue.endless:jankson:1.2.3"
     implementation "io.wispforest:endec:0.1.5"
@@ -49,6 +55,8 @@ processResources {
 shadowJar {
     configurations = [project.configurations.shadowCommon]
     archiveClassifier = "dev-shadow"
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    mergeServiceFiles()
 }
 
 remapJar {

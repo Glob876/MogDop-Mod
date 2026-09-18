@@ -13,7 +13,7 @@ public record SpawnImagePayload(
         int facingId
 ) implements CustomPayload {
 
-    public static final Id<SpawnImagePayload> ID = new Id<>(Identifier.of("mogdops-mod", "spawn_image"));
+    public static final Id<SpawnImagePayload> ID = new Id<>(Identifier.of("mogdopsmod", "spawn_image"));
 
     public static final PacketCodec<RegistryByteBuf, SpawnImagePayload> CODEC = new PacketCodec<>() {
         @Override

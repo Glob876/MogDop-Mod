@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public record SyncSchematicsListPayload(List<String> files) implements CustomPayload {
-    public static final CustomPayload.Id<SyncSchematicsListPayload> ID = new CustomPayload.Id<>(Identifier.of("mogdops-mod", "sync_schematics"));
+    public static final CustomPayload.Id<SyncSchematicsListPayload> ID = new CustomPayload.Id<>(Identifier.of("mogdopsmod", "sync_schematics"));
 
     public static final PacketCodec<RegistryByteBuf, SyncSchematicsListPayload> CODEC = new PacketCodec<>() {
         @Override

@@ -8,7 +8,7 @@ import net.minecraft.util.Identifier;
 
 public record SpawnHeadPayload(String headName, String uuidStr, String textureValue, boolean isCustomTexture) implements CustomPayload {
     
-    public static final CustomPayload.Id<SpawnHeadPayload> ID = new CustomPayload.Id<>(Identifier.of("mogdops-mod", "spawn_head"));
+    public static final CustomPayload.Id<SpawnHeadPayload> ID = new CustomPayload.Id<>(Identifier.of("mogdopsmod", "spawn_head"));
     
     public static final PacketCodec<RegistryByteBuf, SpawnHeadPayload> CODEC = PacketCodec.tuple(
             PacketCodecs.STRING, SpawnHeadPayload::headName,

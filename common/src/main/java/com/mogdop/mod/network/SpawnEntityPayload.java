@@ -18,7 +18,7 @@ public record SpawnEntityPayload(
         int fireTicks
 ) implements CustomPayload {
     
-    public static final Id<SpawnEntityPayload> ID = new Id<>(Identifier.of("mogdops-mod", "spawn_entity"));
+    public static final Id<SpawnEntityPayload> ID = new Id<>(Identifier.of("mogdopsmod", "spawn_entity"));
     
     // ИСПРАВЛЕНИЕ: Ручная запись и чтение буфера в обход лимита в 6 параметров
     public static final PacketCodec<RegistryByteBuf, SpawnEntityPayload> CODEC = new PacketCodec<RegistryByteBuf, SpawnEntityPayload>() {

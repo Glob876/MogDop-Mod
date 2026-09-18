@@ -8,7 +8,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 
 public record ShapePayload(String shapeType, BlockPos pos, String blockId, int radius, int height, boolean hollow) implements CustomPayload {
-    public static final CustomPayload.Id<ShapePayload> ID = new CustomPayload.Id<>(Identifier.of("mogdops-mod", "shape"));
+    public static final CustomPayload.Id<ShapePayload> ID = new CustomPayload.Id<>(Identifier.of("mogdopsmod", "shape"));
 
     public static final PacketCodec<RegistryByteBuf, ShapePayload> CODEC = new PacketCodec<>() {
         @Override

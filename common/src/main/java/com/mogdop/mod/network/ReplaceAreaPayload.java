@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public record ReplaceAreaPayload(List<BlockPos> points, int selectionMode, String targetBlockId, String replacementBlockId) implements CustomPayload {
-    public static final CustomPayload.Id<ReplaceAreaPayload> ID = new CustomPayload.Id<>(Identifier.of("mogdops-mod", "replace_area"));
+    public static final CustomPayload.Id<ReplaceAreaPayload> ID = new CustomPayload.Id<>(Identifier.of("mogdopsmod", "replace_area"));
 
     public static final PacketCodec<RegistryByteBuf, ReplaceAreaPayload> CODEC = new PacketCodec<>() {
         @Override

@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "id": "mogdops-mod",
+  "id": "mogdopsmod",
   "version": "${version}",
   "name": "MogDop's Mod",
   "description": "A Garry's Mod style sandbox toolkit & WorldEdit integration on Architectury API.",
   "authors": ["glob"],
   "contact": {},
   "license": "MIT",
-  "icon": "assets/mogdops-mod/icon.png",
+  "icon": "assets/mogdopsmod/icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [

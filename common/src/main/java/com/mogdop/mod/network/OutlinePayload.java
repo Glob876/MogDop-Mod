@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public record OutlinePayload(List<BlockPos> points, int selectionMode, String blockId) implements CustomPayload {
-    public static final CustomPayload.Id<OutlinePayload> ID = new CustomPayload.Id<>(Identifier.of("mogdops-mod", "outline"));
+    public static final CustomPayload.Id<OutlinePayload> ID = new CustomPayload.Id<>(Identifier.of("mogdopsmod", "outline"));
 
     public static final PacketCodec<RegistryByteBuf, OutlinePayload> CODEC = new PacketCodec<>() {
         @Override

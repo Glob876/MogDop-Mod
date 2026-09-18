@@ -8,7 +8,7 @@ import net.minecraft.util.Identifier;
 
 public record GiveItemPayload(ItemStack stack) implements CustomPayload {
     
-    public static final CustomPayload.Id<GiveItemPayload> ID = new CustomPayload.Id<>(Identifier.of("mogdops-mod", "give_item"));
+    public static final CustomPayload.Id<GiveItemPayload> ID = new CustomPayload.Id<>(Identifier.of("mogdopsmod", "give_item"));
     
     // В 1.21.1 ItemStack.PACKET_CODEC сам сериализует все чары, имена и свойства!
     public static final PacketCodec<RegistryByteBuf, GiveItemPayload> CODEC = PacketCodec.tuple(

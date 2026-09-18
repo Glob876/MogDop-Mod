@@ -27,6 +27,15 @@ subprojects {
 		withSourcesJar()
 		sourceCompatibility = JavaVersion.VERSION_21
 		targetCompatibility = JavaVersion.VERSION_21
+		toolchain {
+			languageVersion = JavaLanguageVersion.of(21)
+		}
+	}
+	// Отключаем Test на Java 25 несовместимости, если toolchain не применился
+	tasks.withType(Test).configureEach {
+		javaLauncher = javaToolchains.launcherFor {
+			languageVersion = JavaLanguageVersion.of(21)
+		}
 	}
 }
 

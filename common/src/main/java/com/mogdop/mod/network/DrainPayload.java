@@ -7,7 +7,7 @@ import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.util.Identifier;
 
 public record DrainPayload(int radius) implements CustomPayload {
-    public static final CustomPayload.Id<DrainPayload> ID = new CustomPayload.Id<>(Identifier.of("mogdops-mod", "drain"));
+    public static final CustomPayload.Id<DrainPayload> ID = new CustomPayload.Id<>(Identifier.of("mogdopsmod", "drain"));
 
     public static final PacketCodec<RegistryByteBuf, DrainPayload> CODEC = PacketCodec.tuple(
             PacketCodecs.INTEGER, DrainPayload::radius,

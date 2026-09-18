@@ -3,8 +3,8 @@
 	"credit": "Made with Blockbench",
 	"texture_size": [32, 32],
 	"textures": {
-		"0": "mogdops-mod:item/staff",
-		"particle": "mogdops-mod:item/staff"
+		"0": "mogdopsmod:item/staff",
+		"particle": "mogdopsmod:item/staff"
 	},
 	"elements": [
 		{

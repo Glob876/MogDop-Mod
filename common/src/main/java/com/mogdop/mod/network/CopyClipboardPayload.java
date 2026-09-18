@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public record CopyClipboardPayload(List<BlockPos> points, int selectionMode) implements CustomPayload {
-    public static final CustomPayload.Id<CopyClipboardPayload> ID = new CustomPayload.Id<>(Identifier.of("mogdops-mod", "copy_clipboard"));
+    public static final CustomPayload.Id<CopyClipboardPayload> ID = new CustomPayload.Id<>(Identifier.of("mogdopsmod", "copy_clipboard"));
 
     public static final PacketCodec<RegistryByteBuf, CopyClipboardPayload> CODEC = new PacketCodec<>() {
         @Override

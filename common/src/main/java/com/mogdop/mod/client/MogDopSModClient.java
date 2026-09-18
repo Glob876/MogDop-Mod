@@ -1,19 +1,24 @@
 package com.mogdop.mod.client;
 
 import com.mogdop.mod.MogDopSMod;
+import com.mogdop.mod.client.gui.ChatNotificationHud;
+import com.mogdop.mod.client.gui.ImageSelectorScreen;
+import com.mogdop.mod.client.gui.MobSpawnerSlabScreen;
+import com.mogdop.mod.client.gui.QuickFillReplaceScreen;
+import com.mogdop.mod.client.gui.SchematicScreen;
+import com.mogdop.mod.client.gui.SelectionAxeHud;
+import com.mogdop.mod.client.gui.SelectionModeScreen;
 import com.mogdop.mod.client.gui.SpawnerScreen;
 import com.mogdop.mod.client.gui.ToolSelectorScreen;
-import com.mogdop.mod.client.gui.SelectionModeScreen;
-import com.mogdop.mod.client.gui.SchematicScreen;
-import com.mogdop.mod.client.gui.QuickFillReplaceScreen;
-import com.mogdop.mod.client.gui.ImageSelectorScreen;
-import com.mogdop.mod.client.gui.WelcomeScreen;
 import com.mogdop.mod.client.render.ImageDisplayEntityRenderer;
-import com.mogdop.mod.network.*;
+import com.mogdop.mod.network.OpenMobSpawnerSlabScreenPayload;
+import com.mogdop.mod.network.SchematicPreviewPayload;
+import com.mogdop.mod.network.SyncSchematicsListPayload;
+import dev.architectury.event.events.client.ClientGuiEvent;
 import dev.architectury.event.events.client.ClientTickEvent;
+import dev.architectury.networking.NetworkManager;
 import dev.architectury.registry.client.keymappings.KeyMappingRegistry;
 import dev.architectury.registry.client.level.entity.EntityRendererRegistry;
-import dev.architectury.networking.NetworkManager;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.MinecraftClient;
@@ -29,9 +34,7 @@ import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
@@ -40,7 +43,6 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalDouble;
 
@@ -52,7 +54,50 @@ public class MogDopSModClient {
     public static KeyBinding openBlockSelectorKey;
     public static KeyBinding openSchematicKey;
 
-    public static final MogdopsModConfig CONFIG = MogdopsModConfig.createAndLoad();
+    public static final MogdopsModConfig CONFIG = initConfig();
+
+    private static MogdopsModConfig initConfig() {
+        try {
+            return MogdopsModConfig.createAndLoad();
+        } catch (Throwable t) {
+            MogDopSMod.LOGGER.warn("OWO config not available (NeoForge without owo-lib), using fallback defaults", t);
+            // Fallback via dynamic proxy — возвращает дефолты из MogdopsModConfigModel
+            MogdopsModConfigModel defaults = new MogdopsModConfigModel();
+            return (MogdopsModConfig) java.lang.reflect.Proxy.newProxyInstance(
+                    MogdopsModConfig.class.getClassLoader(),
+                    new Class[]{MogdopsModConfig.class},
+                    (proxy, method, args) -> {
+                        String n = method.getName();
+                        // save()
+                        if (n.equals("save")) return null;
+                        // hasSeenWelcome
+                        if (n.equals("hasSeenWelcome") && (args == null || args.length == 0)) return defaults.hasSeenWelcome;
+                        if (n.equals("hasSeenWelcome") && args != null && args.length == 1) { defaults.hasSeenWelcome = (Boolean) args[0]; return null; }
+                        if (n.equals("hideChatHUD") && (args == null || args.length == 0)) return defaults.hideChatHUD;
+                        if (n.equals("enableCustomNotifications") && (args == null || args.length == 0)) return defaults.enableCustomNotifications;
+                        if (n.equals("vanillaSkin") && (args == null || args.length == 0)) return defaults.vanillaSkin;
+                        if (n.equals("toolExplosionFire") && (args == null || args.length == 0)) return defaults.toolExplosionFire;
+                        if (n.equals("enableSelectionAnimation") && (args == null || args.length == 0)) return defaults.enableSelectionAnimation;
+                        if (n.equals("enableSelectionParticles") && (args == null || args.length == 0)) return defaults.enableSelectionParticles;
+                        if (n.equals("toolSelectionColor") && (args == null || args.length == 0)) return defaults.toolSelectionColor;
+                        if (n.equals("toolSelectionColor") && args != null && args.length == 1) { defaults.toolSelectionColor = (String) args[0]; return null; }
+                        if (n.equals("toolRemoverRadius") && (args == null || args.length == 0)) return defaults.toolRemoverRadius;
+                        if (n.equals("toolRemoverRadius") && args != null && args.length == 1) { defaults.toolRemoverRadius = (Integer) args[0]; return null; }
+                        if (n.equals("toolExplosionPower") && (args == null || args.length == 0)) return defaults.toolExplosionPower;
+                        if (n.equals("toolExplosionPower") && args != null && args.length == 1) { defaults.toolExplosionPower = (Float) args[0]; return null; }
+                        // геттеры для boolean с is-prefix (если сгенерированы как isX)
+                        if (n.startsWith("is") && (args == null || args.length == 0)) {
+                            String field = Character.toLowerCase(n.charAt(2)) + n.substring(3);
+                            try { return MogdopsModConfigModel.class.getField(field).get(defaults); } catch (Exception ignored) {}
+                        }
+                        if (method.getReturnType() == boolean.class || method.getReturnType() == Boolean.class) return false;
+                        if (method.getReturnType() == int.class || method.getReturnType() == Integer.class) return 0;
+                        if (method.getReturnType() == float.class || method.getReturnType() == Float.class) return 0f;
+                        if (method.getReturnType() == String.class) return "";
+                        return null;
+                    });
+        }
+    }
 
     public static Block activeBlock = Blocks.STONE;
     public static BlockPos pos1 = null;
@@ -128,6 +173,8 @@ public class MogDopSModClient {
     );
 
     private static final NotificationManager notificationManager = new NotificationManager();
+    private static final SelectionAxeHud SELECTION_AXE_HUD = new SelectionAxeHud();
+    private static final ChatNotificationHud CHAT_NOTIFICATION_HUD = new ChatNotificationHud();
 
     public static NotificationManager getNotificationManager() {
         return notificationManager;
@@ -144,6 +191,7 @@ public class MogDopSModClient {
     public static int activeSpawnFireTicks = 0;
 
     public static boolean isSelectionAxe(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
         if (stack.isOf(MogDopSMod.STAFF.get())) {
             return true;
         }
@@ -371,10 +419,46 @@ public class MogDopSModClient {
         KeyMappingRegistry.register(openBlockSelectorKey);
         KeyMappingRegistry.register(openSchematicKey);
 
-        // 2. Регистрация рендереров сущностей
+        // 2. Кроссплатформенный рендеринг HUD через Architectury Event
+        ClientGuiEvent.RENDER_HUD.register((drawContext, tickCounter) -> {
+            SELECTION_AXE_HUD.render(drawContext, tickCounter);
+            CHAT_NOTIFICATION_HUD.render(drawContext, tickCounter);
+        });
+
+        // 3. Регистрация рендереров сущностей
         EntityRendererRegistry.register(MogDopSMod.IMAGE_DISPLAY_ENTITY, ImageDisplayEntityRenderer::new);
 
-        // 3. Тики клиента
+        // 3.1 S2C-пакеты через Architectury — работает и на Fabric, и на NeoForge.
+        // Раньше они были только на Fabric через Fabric API, поэтому на NeoForge
+        // экран спавнера и список схематик никогда не открывались.
+        NetworkManager.registerReceiver(NetworkManager.s2c(), OpenMobSpawnerSlabScreenPayload.ID, OpenMobSpawnerSlabScreenPayload.CODEC, (payload, context) -> {
+            MinecraftClient client = MinecraftClient.getInstance();
+            client.execute(() -> client.setScreen(new MobSpawnerSlabScreen(
+                    payload.pos(), payload.mobId(), payload.spawnInterval(),
+                    payload.maxMobs(), payload.active(), payload.spawnRange())));
+        });
+        NetworkManager.registerReceiver(NetworkManager.s2c(), SyncSchematicsListPayload.ID, SyncSchematicsListPayload.CODEC, (payload, context) -> {
+            MinecraftClient client = MinecraftClient.getInstance();
+            client.execute(() -> {
+                SchematicScreen.cachedSchematicsList.clear();
+                SchematicScreen.cachedSchematicsList.addAll(payload.files());
+                if (client.currentScreen instanceof SchematicScreen screen) {
+                    screen.rebuildFilesUI();
+                }
+            });
+        });
+        NetworkManager.registerReceiver(NetworkManager.s2c(), SchematicPreviewPayload.ID, SchematicPreviewPayload.CODEC, (payload, context) -> {
+            MinecraftClient client = MinecraftClient.getInstance();
+            client.execute(() -> {
+                schematicSizeX = payload.sizeX();
+                schematicSizeY = payload.sizeY();
+                schematicSizeZ = payload.sizeZ();
+                schematicName = payload.filename();
+                schematicPreviewActive = true;
+            });
+        });
+
+        // 4. Тики клиента
         ClientTickEvent.CLIENT_POST.register(client -> {
             notificationManager.update();
 
@@ -382,16 +466,20 @@ public class MogDopSModClient {
                 client.setScreen(new SpawnerScreen());
             }
 
-            if (quickFillKey.isPressed() && !(client.currentScreen instanceof QuickFillReplaceScreen)) {
-                client.setScreen(new QuickFillReplaceScreen());
+            while (quickFillKey.wasPressed()) {
+                if (!(client.currentScreen instanceof QuickFillReplaceScreen)) {
+                    client.setScreen(new QuickFillReplaceScreen());
+                }
             }
 
             while (openToolSelectorKey.wasPressed()) {
                 client.setScreen(new ToolSelectorScreen());
             }
 
-            if (openBlockSelectorKey.isPressed() && !(client.currentScreen instanceof SelectionModeScreen)) {
-                client.setScreen(new SelectionModeScreen());
+            while (openBlockSelectorKey.wasPressed()) {
+                if (!(client.currentScreen instanceof SelectionModeScreen)) {
+                    client.setScreen(new SelectionModeScreen());
+                }
             }
 
             while (openSchematicKey.wasPressed()) {

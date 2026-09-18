@@ -16,7 +16,7 @@ public record UpdateMobSpawnerSlabPayload(
         int spawnRange
 ) implements CustomPayload {
     
-    public static final Id<UpdateMobSpawnerSlabPayload> ID = new Id<>(Identifier.of("mogdops-mod", "update_mob_spawner_slab"));
+    public static final Id<UpdateMobSpawnerSlabPayload> ID = new Id<>(Identifier.of("mogdopsmod", "update_mob_spawner_slab"));
     
     public static final PacketCodec<RegistryByteBuf, UpdateMobSpawnerSlabPayload> CODEC = new PacketCodec<RegistryByteBuf, UpdateMobSpawnerSlabPayload>() {
         @Override

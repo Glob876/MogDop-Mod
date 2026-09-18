@@ -35,6 +35,17 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
     private String searchFilter = "";
     private String selectedFilename = null;
 
+    /** Режим одноразового выбора: вместо PLACE просто отдаёт файл колбэку (для кнопки Browse). */
+    private final java.util.function.Consumer<String> pickCallback;
+
+    public ImageSelectorScreen() {
+        this.pickCallback = null;
+    }
+
+    public ImageSelectorScreen(java.util.function.Consumer<String> pickCallback) {
+        this.pickCallback = pickCallback;
+    }
+
     private LabelComponent pathBreadcrumbLabel;
     private FlowLayout fileListContainer;
     private FlowLayout rightPreviewPanel;
@@ -368,7 +379,14 @@ public class ImageSelectorScreen extends BaseOwoScreen<FlowLayout> {
         }
         rightPreviewPanel.child(statusBox);
 
-        FlowLayout placeBtn = createFlatButton(200, 22, Text.translatable("mogdops-mod.image.btn_place"), () -> {
+        FlowLayout placeBtn = createFlatButton(200, 22,
+                pickCallback != null
+                        ? Text.translatable("mogdops-mod.image.pick")
+                        : Text.translatable("mogdops-mod.image.btn_place"), () -> {
+            if (selectedFilename != null && pickCallback != null) {
+                pickCallback.accept(selectedFilename);
+                return;
+            }
             if (selectedFilename != null && p1 != null && p2 != null) {
                 NetworkManager.sendToServer(new SpawnImagePayload(
                         selectedFilename,

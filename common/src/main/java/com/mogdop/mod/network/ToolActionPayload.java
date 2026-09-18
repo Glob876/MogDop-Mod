@@ -14,7 +14,7 @@ public record ToolActionPayload(
         int removerRadius
 ) implements CustomPayload {
     
-    public static final Id<ToolActionPayload> ID = new Id<>(Identifier.of("mogdops-mod", "tool_action"));
+    public static final Id<ToolActionPayload> ID = new Id<>(Identifier.of("mogdopsmod", "tool_action"));
     
     public static final PacketCodec<RegistryByteBuf, ToolActionPayload> CODEC = new PacketCodec<RegistryByteBuf, ToolActionPayload>() {
         @Override

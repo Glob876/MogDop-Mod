@@ -7,7 +7,6 @@ import com.mogdop.mod.network.*;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
@@ -47,33 +46,8 @@ public class MogDopSModFabricClient implements ClientModInitializer {
             CHAT_NOTIFICATION_HUD.render(drawContext, tickCounter);
         });
 
-        // 4. Сетевые S2C пакеты
-        ClientPlayNetworking.registerGlobalReceiver(OpenMobSpawnerSlabScreenPayload.ID, (payload, ctx) -> ctx.client().execute(() -> {
-            ctx.client().setScreen(new MobSpawnerSlabScreen(
-                    payload.pos(),
-                    payload.mobId(),
-                    payload.spawnInterval(),
-                    payload.maxMobs(),
-                    payload.active(),
-                    payload.spawnRange()
-            ));
-        }));
-
-        ClientPlayNetworking.registerGlobalReceiver(SyncSchematicsListPayload.ID, (payload, ctx) -> ctx.client().execute(() -> {
-            SchematicScreen.cachedSchematicsList.clear();
-            SchematicScreen.cachedSchematicsList.addAll(payload.files());
-            if (ctx.client().currentScreen instanceof SchematicScreen screen) {
-                screen.rebuildFilesUI();
-            }
-        }));
-
-        ClientPlayNetworking.registerGlobalReceiver(SchematicPreviewPayload.ID, (payload, ctx) -> ctx.client().execute(() -> {
-            MogDopSModClient.schematicSizeX = payload.sizeX();
-            MogDopSModClient.schematicSizeY = payload.sizeY();
-            MogDopSModClient.schematicSizeZ = payload.sizeZ();
-            MogDopSModClient.schematicName = payload.filename();
-            MogDopSModClient.schematicPreviewActive = true;
-        }));
+        // 4. Сетевые S2C типы зарегистрированы кроссплатформенно в MogDopSModClient.initClient()
+        // через Architectury NetworkManager — здесь ничего дополнительно не нужно.
 
         // 5. Обработка кликов ЛКМ
         AttackBlockCallback.EVENT.register((player, world, hand, pos, direction) -> {
@@ -93,19 +67,19 @@ public class MogDopSModFabricClient implements ClientModInitializer {
                     return ActionResult.FAIL;
                 }
                 case 1 -> {
-                    ClientPlayNetworking.send(new ToolActionPayload("REMOVER", pos, 0F, false, MogDopSModClient.CONFIG.toolRemoverRadius()));
+                    dev.architectury.networking.NetworkManager.sendToServer(new ToolActionPayload("REMOVER", pos, 0F, false, MogDopSModClient.CONFIG.toolRemoverRadius()));
                     return ActionResult.FAIL;
                 }
                 case 2 -> {
-                    ClientPlayNetworking.send(new ToolActionPayload("EXPLOSION", pos, MogDopSModClient.CONFIG.toolExplosionPower(), MogDopSModClient.CONFIG.toolExplosionFire(), 1));
+                    dev.architectury.networking.NetworkManager.sendToServer(new ToolActionPayload("EXPLOSION", pos, MogDopSModClient.CONFIG.toolExplosionPower(), MogDopSModClient.CONFIG.toolExplosionFire(), 1));
                     return ActionResult.FAIL;
                 }
                 case 3 -> {
-                    ClientPlayNetworking.send(new ToolActionPayload("TELEPORT", pos, 0F, false, 1));
+                    dev.architectury.networking.NetworkManager.sendToServer(new ToolActionPayload("TELEPORT", pos, 0F, false, 1));
                     return ActionResult.FAIL;
                 }
                 case 4 -> {
-                    ClientPlayNetworking.send(new SpawnEntityPayload(MogDopSModClient.activeSpawnId, MogDopSModClient.activeSpawnCustomName, MogDopSModClient.activeSpawnNameVisible, MogDopSModClient.activeSpawnNoGravity, MogDopSModClient.activeSpawnSilent, MogDopSModClient.activeSpawnGlowing, MogDopSModClient.activeSpawnIsBaby, MogDopSModClient.activeSpawnSlimeSize, MogDopSModClient.activeSpawnFireTicks));
+                    dev.architectury.networking.NetworkManager.sendToServer(new SpawnEntityPayload(MogDopSModClient.activeSpawnId, MogDopSModClient.activeSpawnCustomName, MogDopSModClient.activeSpawnNameVisible, MogDopSModClient.activeSpawnNoGravity, MogDopSModClient.activeSpawnSilent, MogDopSModClient.activeSpawnGlowing, MogDopSModClient.activeSpawnIsBaby, MogDopSModClient.activeSpawnSlimeSize, MogDopSModClient.activeSpawnFireTicks));
                     return ActionResult.FAIL;
                 }
                 case 6 -> {
@@ -144,19 +118,19 @@ public class MogDopSModFabricClient implements ClientModInitializer {
                     return ActionResult.SUCCESS;
                 }
                 case 1 -> {
-                    ClientPlayNetworking.send(new ToolActionPayload("REMOVER", pos, 0F, false, MogDopSModClient.CONFIG.toolRemoverRadius()));
+                    dev.architectury.networking.NetworkManager.sendToServer(new ToolActionPayload("REMOVER", pos, 0F, false, MogDopSModClient.CONFIG.toolRemoverRadius()));
                     return ActionResult.SUCCESS;
                 }
                 case 2 -> {
-                    ClientPlayNetworking.send(new ToolActionPayload("EXPLOSION", pos, MogDopSModClient.CONFIG.toolExplosionPower(), MogDopSModClient.CONFIG.toolExplosionFire(), 1));
+                    dev.architectury.networking.NetworkManager.sendToServer(new ToolActionPayload("EXPLOSION", pos, MogDopSModClient.CONFIG.toolExplosionPower(), MogDopSModClient.CONFIG.toolExplosionFire(), 1));
                     return ActionResult.SUCCESS;
                 }
                 case 3 -> {
-                    ClientPlayNetworking.send(new ToolActionPayload("TELEPORT", pos, 0F, false, 1));
+                    dev.architectury.networking.NetworkManager.sendToServer(new ToolActionPayload("TELEPORT", pos, 0F, false, 1));
                     return ActionResult.SUCCESS;
                 }
                 case 4 -> {
-                    ClientPlayNetworking.send(new SpawnEntityPayload(MogDopSModClient.activeSpawnId, MogDopSModClient.activeSpawnCustomName, MogDopSModClient.activeSpawnNameVisible, MogDopSModClient.activeSpawnNoGravity, MogDopSModClient.activeSpawnSilent, MogDopSModClient.activeSpawnGlowing, MogDopSModClient.activeSpawnIsBaby, MogDopSModClient.activeSpawnSlimeSize, MogDopSModClient.activeSpawnFireTicks));
+                    dev.architectury.networking.NetworkManager.sendToServer(new SpawnEntityPayload(MogDopSModClient.activeSpawnId, MogDopSModClient.activeSpawnCustomName, MogDopSModClient.activeSpawnNameVisible, MogDopSModClient.activeSpawnNoGravity, MogDopSModClient.activeSpawnSilent, MogDopSModClient.activeSpawnGlowing, MogDopSModClient.activeSpawnIsBaby, MogDopSModClient.activeSpawnSlimeSize, MogDopSModClient.activeSpawnFireTicks));
                     return ActionResult.SUCCESS;
                 }
                 case 6 -> {
@@ -166,7 +140,7 @@ public class MogDopSModFabricClient implements ClientModInitializer {
                     }
                     MogDopSModClient.imagePos2 = MogDopSModClient.getSnappedPointOnPlane(hitResult, MogDopSModClient.imageSide, MogDopSModClient.imagePos1);
                     player.sendMessage(Text.literal(String.format(Locale.ROOT, "§b[Изображение] Точка 2: (%.2f, %.2f, %.2f)", MogDopSModClient.imagePos2.x, MogDopSModClient.imagePos2.y, MogDopSModClient.imagePos2.z)), true);
-                    MinecraftClient.getInstance().setScreen(new ImageSelectorScreen());
+                    MinecraftClient.getInstance().setScreen(new ImageEditorPanelScreen());
                     return ActionResult.SUCCESS;
                 }
             }
@@ -183,24 +157,24 @@ public class MogDopSModFabricClient implements ClientModInitializer {
             switch (MogDopSModClient.currentToolMode) {
                 case 1 -> {
                     if (hit.getType() == HitResult.Type.BLOCK) {
-                        ClientPlayNetworking.send(new ToolActionPayload("REMOVER", ((BlockHitResult) hit).getBlockPos(), 0F, false, MogDopSModClient.CONFIG.toolRemoverRadius()));
+                        dev.architectury.networking.NetworkManager.sendToServer(new ToolActionPayload("REMOVER", ((BlockHitResult) hit).getBlockPos(), 0F, false, MogDopSModClient.CONFIG.toolRemoverRadius()));
                         return TypedActionResult.success(player.getStackInHand(hand));
                     }
                 }
                 case 2 -> {
                     if (hit.getType() == HitResult.Type.BLOCK) {
-                        ClientPlayNetworking.send(new ToolActionPayload("EXPLOSION", ((BlockHitResult) hit).getBlockPos(), MogDopSModClient.CONFIG.toolExplosionPower(), MogDopSModClient.CONFIG.toolExplosionFire(), 1));
+                        dev.architectury.networking.NetworkManager.sendToServer(new ToolActionPayload("EXPLOSION", ((BlockHitResult) hit).getBlockPos(), MogDopSModClient.CONFIG.toolExplosionPower(), MogDopSModClient.CONFIG.toolExplosionFire(), 1));
                         return TypedActionResult.success(player.getStackInHand(hand));
                     }
                 }
                 case 3 -> {
                     if (hit.getType() == HitResult.Type.BLOCK) {
-                        ClientPlayNetworking.send(new ToolActionPayload("TELEPORT", ((BlockHitResult) hit).getBlockPos(), 0F, false, 1));
+                        dev.architectury.networking.NetworkManager.sendToServer(new ToolActionPayload("TELEPORT", ((BlockHitResult) hit).getBlockPos(), 0F, false, 1));
                         return TypedActionResult.success(player.getStackInHand(hand));
                     }
                 }
                 case 4 -> {
-                    ClientPlayNetworking.send(new SpawnEntityPayload(MogDopSModClient.activeSpawnId, MogDopSModClient.activeSpawnCustomName, MogDopSModClient.activeSpawnNameVisible, MogDopSModClient.activeSpawnNoGravity, MogDopSModClient.activeSpawnSilent, MogDopSModClient.activeSpawnGlowing, MogDopSModClient.activeSpawnIsBaby, MogDopSModClient.activeSpawnSlimeSize, MogDopSModClient.activeSpawnFireTicks));
+                    dev.architectury.networking.NetworkManager.sendToServer(new SpawnEntityPayload(MogDopSModClient.activeSpawnId, MogDopSModClient.activeSpawnCustomName, MogDopSModClient.activeSpawnNameVisible, MogDopSModClient.activeSpawnNoGravity, MogDopSModClient.activeSpawnSilent, MogDopSModClient.activeSpawnGlowing, MogDopSModClient.activeSpawnIsBaby, MogDopSModClient.activeSpawnSlimeSize, MogDopSModClient.activeSpawnFireTicks));
                     return TypedActionResult.success(player.getStackInHand(hand));
                 }
                 case 5 -> {
@@ -409,12 +383,12 @@ public class MogDopSModFabricClient implements ClientModInitializer {
                     WorldRenderer.drawBox(matrices, linesConsumer, p.getX(), p.getY(), p.getZ(), p.getX() + 1.0, p.getY() + 1.0, p.getZ() + 1.0, 1.0F, 0.3F, 0.8F, 1.0F);
 
                     if (i > 0) {
-                        BlockPos prev = selectionPoints.get(i - 1);
+                        BlockPos prev = MogDopSModClient.selectionPoints.get(i - 1);
                         linesConsumer.vertex(matrices.peek(), (float)(prev.getX() + 0.5), (float)(prev.getY() + 0.5), (float)(prev.getZ() + 0.5)).color(0F, 1F, 1F, 1F).normal(0, 1, 0);
                         linesConsumer.vertex(matrices.peek(), (float)(p.getX() + 0.5), (float)(p.getY() + 0.5), (float)(p.getZ() + 0.5)).color(0F, 1F, 1F, 1F).normal(0, 1, 0);
                     }
                     if (i == n - 1 && n >= 3) {
-                        BlockPos first = selectionPoints.get(0);
+                        BlockPos first = MogDopSModClient.selectionPoints.get(0);
                         linesConsumer.vertex(matrices.peek(), (float)(p.getX() + 0.5), (float)(p.getY() + 0.5), (float)(p.getZ() + 0.5)).color(0F, 1F, 1F, 1F).normal(0, 1, 0);
                         linesConsumer.vertex(matrices.peek(), (float)(first.getX() + 0.5), (float)(first.getY() + 0.5), (float)(first.getZ() + 0.5)).color(0F, 1F, 1F, 1F).normal(0, 1, 0);
                     }

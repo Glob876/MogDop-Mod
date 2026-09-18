@@ -3,28 +3,28 @@ loaderVersion = "[4,)"
 license = "MIT"
 
 [[mods]]
-modId = "mogdops-mod"
+modId = "mogdopsmod"
 version = "${version}"
 displayName = "MogDop's Mod"
 description = "A Garry's Mod style sandbox toolkit & WorldEdit integration on Architectury API."
 authors = "glob"
-logoFile = "assets/mogdops-mod/icon.png"
+logoFile = "assets/mogdopsmod/icon.png"
 
-[[dependencies.mogdops-mod]]
+[[dependencies.mogdopsmod]]
 modId = "neoforge"
 type = "required"
 versionRange = "[21.1.0,)"
 ordering = "NONE"
 side = "BOTH"
 
-[[dependencies.mogdops-mod]]
+[[dependencies.mogdopsmod]]
 modId = "minecraft"
 type = "required"
 versionRange = "[1.21.1,1.22)"
 ordering = "NONE"
 side = "BOTH"
 
-[[dependencies.mogdops-mod]]
+[[dependencies.mogdopsmod]]
 modId = "architectury"
 type = "required"
 versionRange = "[13.0.0,)"
