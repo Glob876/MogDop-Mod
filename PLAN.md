@@ -14,7 +14,7 @@
 - Решение: `animImageC0..C3 + imageAnimInit` в `MogDopSModClient`, lerp углов к цели, пульс `alpha = 0.28 + 0.12 * sin(t)`. Сохранить `off=0.004`, `rotateAroundCenter()`. Сброс при новом ЛКМ.
 - Файлы: те же.
 
-## 2. NextBots 🚧 В РАБОТЕ
+## 2. NextBots ✅ ВЫПОЛНЕНО
 - Суть: `PathAwareEntity` + билборд-рендер картинкой из `pics/`. Бегут за игроком, урон **настраиваемый (дефолт = ваншот)**.
 - Новое:
   - `entity/NextbotEntity.java extends PathAwareEntity`: `FollowTargetGoal`, контактный урон из пресета, `movementSpeed` настраиваемая.
