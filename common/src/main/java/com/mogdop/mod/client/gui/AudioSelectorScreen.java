@@ -5,9 +5,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
-import net.minecraft.util.Util;
 
-import java.io.File;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -66,8 +64,12 @@ public class AudioSelectorScreen extends Screen {
         }
 
         this.addDrawableChild(ButtonWidget.builder(Text.translatable("mogdops-mod.image.open_folder"), b -> {
-            File folder = NextbotHelper.getAudioFolder();
-            Util.getOperatingSystem().open(folder);
+            if (!NextbotHelper.openFolder(NextbotHelper.getAudioFolder())) {
+                statusMessage = Text.translatable("mogdops-mod.nextbot.folder_failed",
+                        NextbotHelper.getAudioFolder().getAbsolutePath()).getString();
+            } else {
+                statusMessage = "";
+            }
         }).dimensions(cx - 150, navY + 26, 145, 20).build());
 
         this.addDrawableChild(ButtonWidget.builder(Text.translatable("mogdops-mod.image.refresh"), b -> {

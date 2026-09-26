@@ -370,5 +370,7 @@
   "mogdops-mod.nextbot.audio_folder_hint": "Drop .wav into config/audio/ (looped chase sound, distance volume)",
   "mogdops-mod.nextbot.no_audio_files": "No .wav in audio/ — open the folder and drop files",
   "mogdops-mod.nextbot.err_noaudio": "§c[NextBot] Missing audio %s in audio/!",
-  "mogdops-mod.nextbot.spawn_last": "Spawn last preset"
+  "mogdops-mod.nextbot.spawn_last": "Spawn last preset",
+  "mogdops-mod.nextbot.folder_opened": "§a[NextBot] Opened: %s",
+  "mogdops-mod.nextbot.folder_failed": "§c[NextBot] Could not open, path: %s"
 }

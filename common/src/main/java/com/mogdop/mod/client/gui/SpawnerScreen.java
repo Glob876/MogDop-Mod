@@ -1031,7 +1031,11 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
             }));
             fileRow.child(createFlatButton(30, 18, smallLabel("📁", 0.75f, 0xFFFFFFFF), () -> {
                 var folder = com.mogdop.mod.client.NextbotHelper.getPicsFolder();
-                net.minecraft.util.Util.getOperatingSystem().open(folder);
+                boolean ok = com.mogdop.mod.client.NextbotHelper.openFolder(folder);
+                status = ok
+                        ? Text.translatable("mogdops-mod.nextbot.folder_opened", "pics").getString()
+                        : Text.translatable("mogdops-mod.nextbot.folder_failed", folder.getAbsolutePath()).getString();
+                rebuildTabUI();
             }));
             controls.child(fileRow);
 
@@ -1053,7 +1057,12 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
                 }));
             }));
             audioRow.child(createFlatButton(30, 18, smallLabel("📁", 0.75f, 0xFFFFFFFF), () -> {
-                net.minecraft.util.Util.getOperatingSystem().open(com.mogdop.mod.client.NextbotHelper.getAudioFolder());
+                var folder = com.mogdop.mod.client.NextbotHelper.getAudioFolder();
+                boolean ok = com.mogdop.mod.client.NextbotHelper.openFolder(folder);
+                status = ok
+                        ? Text.translatable("mogdops-mod.nextbot.folder_opened", "audio").getString()
+                        : Text.translatable("mogdops-mod.nextbot.folder_failed", folder.getAbsolutePath()).getString();
+                rebuildTabUI();
             }));
             controls.child(audioRow);
 

@@ -370,5 +370,7 @@
   "mogdops-mod.nextbot.audio_folder_hint": "Кладите .wav в config/audio/ (chase-звук зациклен, громкость по дистанции)",
   "mogdops-mod.nextbot.no_audio_files": "Нет .wav в audio/ — откройте папку и положите файлы",
   "mogdops-mod.nextbot.err_noaudio": "§c[NextBot] Нет аудио %s в audio/!",
-  "mogdops-mod.nextbot.spawn_last": "Заспавнить последний пресет"
+  "mogdops-mod.nextbot.spawn_last": "Заспавнить последний пресет",
+  "mogdops-mod.nextbot.folder_opened": "§a[NextBot] Открыто: %s",
+  "mogdops-mod.nextbot.folder_failed": "§c[NextBot] Не открылось, путь вручную: %s"
 }

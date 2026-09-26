@@ -7,7 +7,6 @@ import com.mogdop.mod.entity.NextbotEntity;
 import com.mogdop.mod.network.SpawnNextbotPayload;
 import com.mogdop.mod.network.UpdateNextbotPayload;
 import dev.architectury.networking.NetworkManager;
-import dev.architectury.platform.Platform;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -15,9 +14,7 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.CheckboxWidget;
 import net.minecraft.client.gui.widget.SliderWidget;
 import net.minecraft.text.Text;
-import net.minecraft.util.Util;
 
-import java.io.File;
 import java.util.Locale;
 
 /**
@@ -78,9 +75,11 @@ public class NextbotSettingsScreen extends Screen {
         }).dimensions(cx - 150, y, 145, 20).build());
 
         this.addDrawableChild(ButtonWidget.builder(Text.translatable("mogdops-mod.image.open_folder"), b -> {
-            File folder = Platform.getConfigFolder().resolve("pics").toFile();
-            if (!folder.exists()) folder.mkdirs();
-            Util.getOperatingSystem().open(folder);
+            if (!NextbotHelper.openFolder(NextbotHelper.getPicsFolder())) {
+                fail("mogdops-mod.nextbot.folder_failed", NextbotHelper.getPicsFolder().getAbsolutePath());
+            } else {
+                ok();
+            }
         }).dimensions(cx + 5, y, 145, 20).build());
         y += 26;
 
@@ -93,7 +92,11 @@ public class NextbotSettingsScreen extends Screen {
         }).dimensions(cx - 150, y, 145, 20).build());
 
         this.addDrawableChild(ButtonWidget.builder(Text.translatable("mogdops-mod.nextbot.open_audio_folder"), b -> {
-            Util.getOperatingSystem().open(NextbotHelper.getAudioFolder());
+            if (!NextbotHelper.openFolder(NextbotHelper.getAudioFolder())) {
+                fail("mogdops-mod.nextbot.folder_failed", NextbotHelper.getAudioFolder().getAbsolutePath());
+            } else {
+                ok();
+            }
         }).dimensions(cx + 5, y, 145, 20).build());
         y += 26;
 

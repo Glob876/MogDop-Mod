@@ -58,6 +58,63 @@ public class NextbotHelper {
     }
 
     /**
+     * Надёжно открыть папку в системном проводнике.
+     * Ванильный {@code Util.open()} на Linux без рабочего opener'а молча ничего
+     * не делает (исключения нет), поэтому на unix идём через нативные открывалки
+     * с проверкой exit-code, а ванильный вызов — последний шанс.
+     *
+     * @return true если проводник почти наверняка открылся
+     */
+    public static boolean openFolder(File folder) {
+        try {
+            if (!folder.exists()) folder.mkdirs();
+        } catch (Exception ignored) {}
+        String os = System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT);
+        boolean unix = os.contains("linux") || os.contains("nix") || os.contains("nux")
+                || os.contains("aix") || os.contains("bsd") || os.contains("sunos");
+        boolean mac = os.contains("mac");
+        if (unix && !mac) {
+            String[][] candidates = {
+                    {"xdg-open"}, {"gio", "open"}, {"exo-open"},
+                    {"gnome-open"}, {"kde-open"}, {"wslview"}
+            };
+            for (String[] opener : candidates) {
+                if (tryOpener(opener, folder)) return true;
+            }
+            try {
+                net.minecraft.util.Util.getOperatingSystem().open(folder);
+                return true;
+            } catch (Throwable t) {
+                return false;
+            }
+        }
+        if (mac) {
+            if (tryOpener(new String[]{"open"}, folder)) return true;
+        }
+        try {
+            net.minecraft.util.Util.getOperatingSystem().open(folder);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /** Запуск opener'а: несуществующий бинарь падает сразу, зависший процесс = что-то открылось. */
+    private static boolean tryOpener(String[] opener, File folder) {
+        try {
+            String[] cmd = new String[opener.length + 1];
+            System.arraycopy(opener, 0, cmd, 0, opener.length);
+            cmd[cmd.length - 1] = folder.getAbsolutePath();
+            Process p = new ProcessBuilder(cmd).redirectErrorStream(true).start();
+            boolean finished = p.waitFor(5, java.util.concurrent.TimeUnit.SECONDS);
+            if (!finished) return true;
+            return p.exitValue() == 0;
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    /**
      * Проверка картинки 1:1. При forceCrop неквадрат обрезается в центр-квадрат
      * (новый файл cropped_*, оригинал не трогаем). Возвращает итоговое имя файла
      * либо null (ошибка уже передана в errorSink как lang-ключ с format-аргументами).
