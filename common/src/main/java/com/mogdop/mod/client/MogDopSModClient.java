@@ -11,7 +11,6 @@ import com.mogdop.mod.client.gui.SelectionModeScreen;
 import com.mogdop.mod.client.gui.SpawnerScreen;
 import com.mogdop.mod.client.gui.ToolSelectorScreen;
 import com.mogdop.mod.client.audio.ClientAudioManager;
-import com.mogdop.mod.client.gui.NextbotSettingsScreen;
 import com.mogdop.mod.client.render.ImageDisplayEntityRenderer;
 import com.mogdop.mod.client.render.NextbotEntityRenderer;
 import com.mogdop.mod.network.OpenMobSpawnerSlabScreenPayload;
@@ -539,7 +538,7 @@ public class MogDopSModClient {
             }
 
             while (openNextbotKey.wasPressed()) {
-                client.setScreen(new NextbotSettingsScreen());
+                client.setScreen(new SpawnerScreen(null, 4));
             }
         });
     }
