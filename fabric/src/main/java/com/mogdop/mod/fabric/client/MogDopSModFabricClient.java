@@ -88,6 +88,7 @@ public class MogDopSModFabricClient implements ClientModInitializer {
                         MogDopSModClient.imagePos1 = MogDopSModClient.getSnappedPixelPoint(hitResult);
                         MogDopSModClient.imageSide = hitResult.getSide();
                         MogDopSModClient.imagePos2 = null;
+                        MogDopSModClient.resetImageSelectionAnim();
                         player.sendMessage(Text.literal(String.format(Locale.ROOT, "§a[Изображение] Точка 1: (%.2f, %.2f, %.2f) на грани %s", MogDopSModClient.imagePos1.x, MogDopSModClient.imagePos1.y, MogDopSModClient.imagePos1.z, MogDopSModClient.imageSide.asString())), true);
                     }
                     return ActionResult.FAIL;
@@ -254,22 +255,44 @@ public class MogDopSModFabricClient implements ClientModInitializer {
                         c3 = com.mogdop.mod.entity.ImageDisplayEntity.rotateAroundCenter(c3, center, MogDopSModClient.imageSide, MogDopSModClient.imageRotation);
                     }
 
+                    // Анимация: lerp углов к цели + пульс прозрачности
+                    double imageSpeed = 0.25;
+                    if (!MogDopSModClient.imageAnimInit || MogDopSModClient.animImageC0 == null
+                            || MogDopSModClient.animImageC1 == null || MogDopSModClient.animImageC2 == null
+                            || MogDopSModClient.animImageC3 == null) {
+                        MogDopSModClient.animImageC0 = c0;
+                        MogDopSModClient.animImageC1 = c1;
+                        MogDopSModClient.animImageC2 = c2;
+                        MogDopSModClient.animImageC3 = c3;
+                        MogDopSModClient.imageAnimInit = true;
+                    } else {
+                        MogDopSModClient.animImageC0 = MogDopSModClient.lerpVec(MogDopSModClient.animImageC0, c0, imageSpeed);
+                        MogDopSModClient.animImageC1 = MogDopSModClient.lerpVec(MogDopSModClient.animImageC1, c1, imageSpeed);
+                        MogDopSModClient.animImageC2 = MogDopSModClient.lerpVec(MogDopSModClient.animImageC2, c2, imageSpeed);
+                        MogDopSModClient.animImageC3 = MogDopSModClient.lerpVec(MogDopSModClient.animImageC3, c3, imageSpeed);
+                    }
+                    Vec3d d0 = MogDopSModClient.animImageC0;
+                    Vec3d d1 = MogDopSModClient.animImageC1;
+                    Vec3d d2 = MogDopSModClient.animImageC2;
+                    Vec3d d3 = MogDopSModClient.animImageC3;
+                    float pulseAlpha = (float) (0.28 + 0.12 * Math.sin(System.currentTimeMillis() / 300.0));
+
                     VertexConsumer quads = consumers.getBuffer(MogDopSModClient.SELECTION_QUADS);
                     MatrixStack.Entry entry = matrices.peek();
-                    quads.vertex(entry, (float)c0.x, (float)c0.y, (float)c0.z).color(0.0F, 0.8F, 1.0F, 0.35F);
-                    quads.vertex(entry, (float)c1.x, (float)c1.y, (float)c1.z).color(0.0F, 0.8F, 1.0F, 0.35F);
-                    quads.vertex(entry, (float)c2.x, (float)c2.y, (float)c2.z).color(0.0F, 0.8F, 1.0F, 0.35F);
-                    quads.vertex(entry, (float)c3.x, (float)c3.y, (float)c3.z).color(0.0F, 0.8F, 1.0F, 0.35F);
+                    quads.vertex(entry, (float)d0.x, (float)d0.y, (float)d0.z).color(0.0F, 0.8F, 1.0F, pulseAlpha);
+                    quads.vertex(entry, (float)d1.x, (float)d1.y, (float)d1.z).color(0.0F, 0.8F, 1.0F, pulseAlpha);
+                    quads.vertex(entry, (float)d2.x, (float)d2.y, (float)d2.z).color(0.0F, 0.8F, 1.0F, pulseAlpha);
+                    quads.vertex(entry, (float)d3.x, (float)d3.y, (float)d3.z).color(0.0F, 0.8F, 1.0F, pulseAlpha);
 
                     VertexConsumer lines = consumers.getBuffer(MogDopSModClient.SELECTION_LINES);
-                    lines.vertex(entry, (float)c0.x, (float)c0.y, (float)c0.z).color(0.0F, 0.8F, 1.0F, 1.0F).normal(0, 1, 0);
-                    lines.vertex(entry, (float)c1.x, (float)c1.y, (float)c1.z).color(0.0F, 0.8F, 1.0F, 1.0F).normal(0, 1, 0);
-                    lines.vertex(entry, (float)c1.x, (float)c1.y, (float)c1.z).color(0.0F, 0.8F, 1.0F, 1.0F).normal(0, 1, 0);
-                    lines.vertex(entry, (float)c2.x, (float)c2.y, (float)c2.z).color(0.0F, 0.8F, 1.0F, 1.0F).normal(0, 1, 0);
-                    lines.vertex(entry, (float)c2.x, (float)c2.y, (float)c2.z).color(0.0F, 0.8F, 1.0F, 1.0F).normal(0, 1, 0);
-                    lines.vertex(entry, (float)c3.x, (float)c3.y, (float)c3.z).color(0.0F, 0.8F, 1.0F, 1.0F).normal(0, 1, 0);
-                    lines.vertex(entry, (float)c3.x, (float)c3.y, (float)c3.z).color(0.0F, 0.8F, 1.0F, 1.0F).normal(0, 1, 0);
-                    lines.vertex(entry, (float)c0.x, (float)c0.y, (float)c0.z).color(0.0F, 0.8F, 1.0F, 1.0F).normal(0, 1, 0);
+                    lines.vertex(entry, (float)d0.x, (float)d0.y, (float)d0.z).color(0.0F, 0.8F, 1.0F, 1.0F).normal(0, 1, 0);
+                    lines.vertex(entry, (float)d1.x, (float)d1.y, (float)d1.z).color(0.0F, 0.8F, 1.0F, 1.0F).normal(0, 1, 0);
+                    lines.vertex(entry, (float)d1.x, (float)d1.y, (float)d1.z).color(0.0F, 0.8F, 1.0F, 1.0F).normal(0, 1, 0);
+                    lines.vertex(entry, (float)d2.x, (float)d2.y, (float)d2.z).color(0.0F, 0.8F, 1.0F, 1.0F).normal(0, 1, 0);
+                    lines.vertex(entry, (float)d2.x, (float)d2.y, (float)d2.z).color(0.0F, 0.8F, 1.0F, 1.0F).normal(0, 1, 0);
+                    lines.vertex(entry, (float)d3.x, (float)d3.y, (float)d3.z).color(0.0F, 0.8F, 1.0F, 1.0F).normal(0, 1, 0);
+                    lines.vertex(entry, (float)d3.x, (float)d3.y, (float)d3.z).color(0.0F, 0.8F, 1.0F, 1.0F).normal(0, 1, 0);
+                    lines.vertex(entry, (float)d0.x, (float)d0.y, (float)d0.z).color(0.0F, 0.8F, 1.0F, 1.0F).normal(0, 1, 0);
 
                     matrices.pop();
                 }
