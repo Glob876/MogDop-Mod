@@ -119,14 +119,17 @@ public class NextbotSettingsScreen extends Screen {
         });
         y += 26;
 
-        forceCropBox = new CheckboxWidget(cx - 150, y, 300, 20,
-                Text.translatable("mogdops-mod.nextbot.force_crop"), forceCrop);
+        forceCropBox = CheckboxWidget.builder(Text.translatable("mogdops-mod.nextbot.force_crop"), this.textRenderer)
+                .checked(forceCrop)
+                .callback((checkbox, checked) -> forceCrop = checked)
+                .pos(cx - 150, y)
+                .build();
         this.addDrawableChild(forceCropBox);
         y += 28;
 
         this.addDrawableChild(ButtonWidget.builder(Text.translatable("mogdops-mod.nextbot.spawn"), b -> spawnPressed()).dimensions(cx - 150, y, 145, 20).build());
         if (editingUuid != null && !editingUuid.isEmpty()) {
-            this.addDrawableChild(ButtonWidget.builder(Text.translatable("mogdops-mod.nextbot.apply"), b -> applyPressed()).dimensions(cx + 5, y, 145, 20).build();
+            this.addDrawableChild(ButtonWidget.builder(Text.translatable("mogdops-mod.nextbot.apply"), b -> applyPressed()).dimensions(cx + 5, y, 145, 20).build());
         } else {
             this.addDrawableChild(ButtonWidget.builder(Text.translatable("mogdops-mod.image.cancel"), b -> this.close()).dimensions(cx + 5, y, 145, 20).build());
         }
