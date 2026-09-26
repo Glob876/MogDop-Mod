@@ -1,7 +1,9 @@
 package com.mogdop.mod.client.gui;
 
 import com.mogdop.mod.client.MogDopSModClient;
+import com.mogdop.mod.client.NextbotHelper;
 import com.mogdop.mod.client.render.ClientImageTextureManager;
+import com.mogdop.mod.entity.NextbotEntity;
 import com.mogdop.mod.network.SpawnNextbotPayload;
 import com.mogdop.mod.network.UpdateNextbotPayload;
 import dev.architectury.networking.NetworkManager;
@@ -14,21 +16,22 @@ import net.minecraft.client.gui.widget.CheckboxWidget;
 import net.minecraft.client.gui.widget.SliderWidget;
 import net.minecraft.text.Text;
 import net.minecraft.util.Util;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.Locale;
 
+/**
+ * Ванильный редактор пресета NextBot. Основной редактор живёт во вкладке
+ * NextBots главного меню (SpawnerScreen) — этот экран оставлен для прямого
+ * открытия и чинится без перекрытий: превью сверху, все контролы ниже.
+ */
 public class NextbotSettingsScreen extends Screen {
 
     private String fileName;
     private float speed;
     private float damage;
+    private float size;
+    private String audioName;
     private boolean forceCrop;
     private final String editingUuid;
 
@@ -47,14 +50,9 @@ public class NextbotSettingsScreen extends Screen {
         this.fileName = MogDopSModClient.nextbotFileName != null ? MogDopSModClient.nextbotFileName : "";
         this.speed = MogDopSModClient.nextbotSpeed <= 0 ? 0.3F : MogDopSModClient.nextbotSpeed;
         this.damage = MogDopSModClient.nextbotDamage <= 0 ? 100.0F : MogDopSModClient.nextbotDamage;
-    }
-
-    public NextbotSettingsScreen(String editingUuid, String fileName, float speed, float damage) {
-        super(Text.translatable("mogdops-mod.nextbot.title"));
-        this.editingUuid = editingUuid;
-        this.fileName = fileName != null ? fileName : "";
-        this.speed = speed;
-        this.damage = damage;
+        this.size = MogDopSModClient.nextbotSize <= 0 ? 1.0F : MogDopSModClient.nextbotSize;
+        this.audioName = MogDopSModClient.nextbotAudio != null ? MogDopSModClient.nextbotAudio : "";
+        this.forceCrop = MogDopSModClient.nextbotForceCrop;
     }
 
     @Override
@@ -65,23 +63,39 @@ public class NextbotSettingsScreen extends Screen {
     @Override
     protected void init() {
         int cx = this.width / 2;
-        int y = 40;
+        // Превью 96px занимает y 44..~160 — контролы начинаются с y=168, перекрытий нет.
+        int y = 168;
 
         this.addDrawableChild(ButtonWidget.builder(Text.translatable("mogdops-mod.image.browse"), b -> {
             MinecraftClient client = MinecraftClient.getInstance();
             client.setScreen(new ImageSelectorScreen(selected -> {
-                this.fileName = selected;
-                ClientImageTextureManager.clearCache();
+                if (selected != null) {
+                    this.fileName = selected;
+                    ClientImageTextureManager.clearCache();
+                }
                 client.setScreen(this);
             }));
-        }).dimensions(cx - 150, y, 120, 20).build());
+        }).dimensions(cx - 150, y, 145, 20).build());
 
         this.addDrawableChild(ButtonWidget.builder(Text.translatable("mogdops-mod.image.open_folder"), b -> {
             File folder = Platform.getConfigFolder().resolve("pics").toFile();
             if (!folder.exists()) folder.mkdirs();
             Util.getOperatingSystem().open(folder);
-        }).dimensions(cx + 30, y, 120, 20).build());
-        y += 28;
+        }).dimensions(cx + 5, y, 145, 20).build());
+        y += 26;
+
+        this.addDrawableChild(ButtonWidget.builder(Text.translatable("mogdops-mod.nextbot.browse_audio"), b -> {
+            MinecraftClient client = MinecraftClient.getInstance();
+            client.setScreen(new AudioSelectorScreen(selected -> {
+                if (selected != null) this.audioName = selected;
+                client.setScreen(this);
+            }));
+        }).dimensions(cx - 150, y, 145, 20).build());
+
+        this.addDrawableChild(ButtonWidget.builder(Text.translatable("mogdops-mod.nextbot.open_audio_folder"), b -> {
+            Util.getOperatingSystem().open(NextbotHelper.getAudioFolder());
+        }).dimensions(cx + 5, y, 145, 20).build());
+        y += 26;
 
         // Слайдер скорости 0.05..1.0
         this.addDrawableChild(new SliderWidget(cx - 150, y, 300, 20,
@@ -119,6 +133,24 @@ public class NextbotSettingsScreen extends Screen {
         });
         y += 26;
 
+        // Слайдер размера 0.25..3.0
+        this.addDrawableChild(new SliderWidget(cx - 150, y, 300, 20,
+                Text.literal(String.format(Locale.ROOT, "%s: %.2f", Text.translatable("mogdops-mod.nextbot.size").getString(), size)),
+                (size - NextbotEntity.MIN_SIZE) / (NextbotEntity.MAX_SIZE - NextbotEntity.MIN_SIZE)) {
+            @Override
+            protected void updateMessage() {
+                float v = NextbotEntity.MIN_SIZE + (float) this.value * (NextbotEntity.MAX_SIZE - NextbotEntity.MIN_SIZE);
+                this.setMessage(Text.literal(String.format(Locale.ROOT, "%s: %.2f",
+                        Text.translatable("mogdops-mod.nextbot.size").getString(), v)));
+            }
+
+            @Override
+            protected void applyValue() {
+                size = NextbotEntity.MIN_SIZE + (float) this.value * (NextbotEntity.MAX_SIZE - NextbotEntity.MIN_SIZE);
+            }
+        });
+        y += 26;
+
         forceCropBox = CheckboxWidget.builder(Text.translatable("mogdops-mod.nextbot.force_crop"), this.textRenderer)
                 .checked(forceCrop)
                 .callback((checkbox, checked) -> forceCrop = checked)
@@ -135,17 +167,23 @@ public class NextbotSettingsScreen extends Screen {
         }
     }
 
-    private void spawnPressed() {
-        String resolved = validateAndResolve();
-        if (resolved == null) return;
+    private void saveDraft(String resolved) {
         MogDopSModClient.nextbotFileName = resolved;
         MogDopSModClient.nextbotSpeed = speed;
         MogDopSModClient.nextbotDamage = damage;
+        MogDopSModClient.nextbotSize = size;
+        MogDopSModClient.nextbotAudio = audioName;
+        MogDopSModClient.nextbotForceCrop = forceCropBoxChecked();
+    }
 
+    private void spawnPressed() {
+        String resolved = validateAndResolve();
+        if (resolved == null) return;
+        saveDraft(resolved);
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null) return;
-        Vec3d spawnPos = computeSpawnPos();
-        NetworkManager.sendToServer(new SpawnNextbotPayload(resolved, spawnPos.x, spawnPos.y, spawnPos.z, speed, damage));
+        var spawnPos = NextbotHelper.computeSpawnPos(client);
+        NetworkManager.sendToServer(new SpawnNextbotPayload(resolved, spawnPos.x, spawnPos.y, spawnPos.z, speed, damage, size, audioName));
         client.player.sendMessage(Text.translatable("mogdops-mod.nextbot.spawned", resolved), true);
         this.close();
     }
@@ -153,10 +191,8 @@ public class NextbotSettingsScreen extends Screen {
     private void applyPressed() {
         String resolved = validateAndResolve();
         if (resolved == null) return;
-        MogDopSModClient.nextbotFileName = resolved;
-        MogDopSModClient.nextbotSpeed = speed;
-        MogDopSModClient.nextbotDamage = damage;
-        NetworkManager.sendToServer(new UpdateNextbotPayload(editingUuid, resolved, speed, damage));
+        saveDraft(resolved);
+        NetworkManager.sendToServer(new UpdateNextbotPayload(editingUuid, resolved, speed, damage, size, audioName));
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player != null) {
             client.player.sendMessage(Text.translatable("mogdops-mod.nextbot.applied"), true);
@@ -164,46 +200,24 @@ public class NextbotSettingsScreen extends Screen {
         this.close();
     }
 
-    private Vec3d computeSpawnPos() {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player == null) return new Vec3d(0, 64, 0);
-        HitResult hit = client.player.raycast(64.0, 1.0F, false);
-        if (hit.getType() == HitResult.Type.BLOCK) {
-            BlockHitResult blockHit = (BlockHitResult) hit;
-            Direction side = blockHit.getSide();
-            Vec3d p = hit.getPos();
-            return p.add(side.getOffsetX() * 0.5, side.getOffsetY() * 0.1 + 0.1, side.getOffsetZ() * 0.5);
-        }
-        return client.player.getEyePos().add(client.player.getRotationVec(1.0F).multiply(3.0));
-    }
-
-    /** Проверка 1:1 обязательна; при forceCrop — центр-квадрат в новый файл, оригинал не трогаем. */
+    /** Проверка 1:1 + существование аудио; при forceCrop неквадрат режется в новый файл. */
     private String validateAndResolve() {
-        if (fileName == null || fileName.isEmpty()) {
-            fail("mogdops-mod.nextbot.err_nofile");
-            return null;
-        }
-        ClientImageTextureManager.ImageTextureInfo info = ClientImageTextureManager.getTexture(fileName);
-        if (info == null) {
-            fail("mogdops-mod.nextbot.err_load");
-            return null;
-        }
-        if (info.width() != info.height()) {
-            if (!forceCropBoxChecked()) {
-                fail("mogdops-mod.nextbot.err_notsquare", info.width(), info.height());
-                return null;
+        String resolved = NextbotHelper.resolveTexture(fileName, forceCropBoxChecked(), err -> {
+            if (err.startsWith("mogdops-mod.nextbot.err_notsquare|")) {
+                String[] parts = err.split("\\|");
+                fail("mogdops-mod.nextbot.err_notsquare", parts.length > 1 ? parts[1] : "?", parts.length > 2 ? parts[2] : "?");
+            } else {
+                fail(err);
             }
-            String cropped = cropCenterSquare(fileName);
-            if (cropped == null) {
-                fail("mogdops-mod.nextbot.err_crop");
-                return null;
-            }
-            this.fileName = cropped;
-            ClientImageTextureManager.clearCache();
-            return cropped;
+        });
+        if (resolved == null) return null;
+        this.fileName = resolved;
+        if (audioName != null && !audioName.isEmpty() && !NextbotHelper.audioExists(audioName)) {
+            fail("mogdops-mod.nextbot.err_noaudio", audioName);
+            return null;
         }
         ok();
-        return fileName;
+        return resolved;
     }
 
     private boolean forceCropBoxChecked() {
@@ -222,49 +236,29 @@ public class NextbotSettingsScreen extends Screen {
         statusMessage = "";
     }
 
-    /** Центр-квадрат: читаем оригинал, вырезаем квадрат по min(w,h) из центра, пишем рядом cropped_*.png. */
+    /** Совместимость: кроп теперь в NextbotHelper. */
     public static String cropCenterSquare(String relPath) {
-        try {
-            File base = Platform.getConfigFolder().resolve("pics").toFile();
-            File src = new File(base, relPath);
-            if (!src.exists()) return null;
-            BufferedImage img = ImageIO.read(src);
-            if (img == null) return null;
-            int w = img.getWidth();
-            int h = img.getHeight();
-            int side = Math.min(w, h);
-            if (side <= 0) return null;
-            int x = (w - side) / 2;
-            int y = (h - side) / 2;
-            BufferedImage square = img.getSubimage(x, y, side, side);
-            String srcName = src.getName();
-            String outName = "cropped_" + srcName.replaceAll("(?i)\\.(jpg|jpeg|webp|bmp)$", ".png");
-            if (!outName.endsWith(".png")) outName = outName + ".png";
-            File parent = src.getParentFile();
-            File out = new File(parent, outName);
-            ImageIO.write(square, "png", out);
-            String rel = base.toURI().relativize(out.toURI()).getPath();
-            return rel;
-        } catch (Exception e) {
-            return null;
-        }
+        return NextbotHelper.cropCenterSquare(relPath);
     }
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
         int cx = this.width / 2;
-        context.drawCenteredTextWithShadow(this.textRenderer, this.title, cx, 12, 0xFF00C8FF);
+        context.drawCenteredTextWithShadow(this.textRenderer, this.title, cx, 10, 0xFF00C8FF);
         String fileLabel = Text.translatable("mogdops-mod.nextbot.file", fileName == null || fileName.isEmpty() ? "—" : fileName).getString();
-        context.drawCenteredTextWithShadow(this.textRenderer, fileLabel, cx, 30, 0xFFFFAA00);
+        context.drawCenteredTextWithShadow(this.textRenderer, fileLabel, cx, 22, 0xFFFFAA00);
+        String audioLabel = Text.translatable("mogdops-mod.nextbot.audio",
+                audioName == null || audioName.isEmpty() ? Text.translatable("mogdops-mod.nextbot.audio_none").getString() : audioName).getString();
+        context.drawCenteredTextWithShadow(this.textRenderer, audioLabel, cx, 32, 0xFF55FFFF);
 
-        // Превью 96x96 по центру выше кнопок
+        // Превью 96x96: y 44..140 + подпись — выше всех кнопок (кнопки с y=168).
         if (fileName != null && !fileName.isEmpty()) {
             ClientImageTextureManager.ImageTextureInfo info = ClientImageTextureManager.getTexture(fileName);
             if (info != null) {
                 int box = 96;
                 int px = cx - box / 2;
-                int py = 68;
+                int py = 44;
                 context.fill(px - 1, py - 1, px + box + 1, py + box + 1, 0xFF000000);
                 context.drawTexture(info.id(), px, py, 0, 0, box, box, box, box);
                 String dims = info.width() + "x" + info.height();
@@ -277,7 +271,7 @@ public class NextbotSettingsScreen extends Screen {
             }
         }
         if (!statusMessage.isEmpty()) {
-            context.drawCenteredTextWithShadow(this.textRenderer, statusMessage, cx, this.height - 24, statusColor);
+            context.drawCenteredTextWithShadow(this.textRenderer, statusMessage, cx, this.height - 20, statusColor);
         }
     }
 }
