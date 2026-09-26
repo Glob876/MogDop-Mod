@@ -1,8 +1,10 @@
 package com.mogdop.mod.fabric;
 
 import com.mogdop.mod.MogDopSMod;
+import com.mogdop.mod.entity.NextbotEntity;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
+import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.minecraft.item.ItemGroups;
 
 public class MogDopSModFabric implements ModInitializer {
@@ -10,6 +12,9 @@ public class MogDopSModFabric implements ModInitializer {
     public void onInitialize() {
         // Инициализация общего ядра мода
         MogDopSMod.init();
+
+        // Атрибуты NextBot (иначе краш "Missing attribute" при спавне)
+        FabricDefaultAttributeRegistry.register(MogDopSMod.NEXTBOT.get(), NextbotEntity.createNextbotAttributes());
 
         // В ванильные вкладки — напрямую через Fabric API.
         // Architectury CreativeTabRegistry.append здесь НЕ используем: на связке

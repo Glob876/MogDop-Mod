@@ -1,6 +1,7 @@
 package com.mogdop.mod;
 
 import com.mogdop.mod.entity.ImageDisplayEntity;
+import com.mogdop.mod.entity.NextbotEntity;
 import com.mogdop.mod.network.*;
 import com.mogdop.mod.worldedit.WorldEditIntegration;
 import dev.architectury.event.events.common.CommandRegistrationEvent;
@@ -72,6 +73,14 @@ public class MogDopSMod {
                     .maxTrackingRange(12)
                     .trackingTickInterval(10)
                     .build("image_display"));
+
+    // 3.1 NextBot: PathAwareEntity + билборд из pics/
+    public static final RegistrySupplier<EntityType<NextbotEntity>> NEXTBOT = ENTITY_TYPES.register("nextbot",
+            () -> EntityType.Builder.<NextbotEntity>create(NextbotEntity::new, SpawnGroup.MONSTER)
+                    .dimensions(0.6F, 1.8F)
+                    .maxTrackingRange(10)
+                    .trackingTickInterval(3)
+                    .build("nextbot"));
 
     // 4. Собственная креативная вкладка — иначе предметы есть в реестре, но их нигде не видно.
     // ВАЖНО: записи задаём прямо в Builder. CreativeTabRegistry.append/appendStack на
@@ -416,6 +425,35 @@ public class MogDopSMod {
                         if (e != null) e.discard();
                     } catch (Exception ignored) {}
                 }
+            });
+        });
+
+        // NextBots: спавн по пресету (картинка из pics/, скорость, урон)
+        NetworkManager.registerReceiver(NetworkManager.c2s(), SpawnNextbotPayload.ID, SpawnNextbotPayload.CODEC, (payload, context) -> {
+            ServerPlayerEntity player = (ServerPlayerEntity) context.getPlayer();
+            ServerWorld world = (ServerWorld) player.getWorld();
+            world.getServer().execute(() -> {
+                NextbotEntity entity = NEXTBOT.get().create(world);
+                if (entity != null) {
+                    entity.applyPreset(payload.fileName(), payload.speed(), payload.damage());
+                    entity.refreshPositionAndAngles(payload.x(), payload.y(), payload.z(), player.getYaw(), 0.0F);
+                    entity.setPersistent();
+                    world.spawnEntity(entity);
+                }
+            });
+        });
+
+        // NextBots: применить пресет к существующему (текстура/скорость/урон)
+        NetworkManager.registerReceiver(NetworkManager.c2s(), UpdateNextbotPayload.ID, UpdateNextbotPayload.CODEC, (payload, context) -> {
+            ServerPlayerEntity player = (ServerPlayerEntity) context.getPlayer();
+            ServerWorld world = (ServerWorld) player.getWorld();
+            world.getServer().execute(() -> {
+                try {
+                    UUID uuid = UUID.fromString(payload.entityUuidStr());
+                    if (world.getEntity(uuid) instanceof NextbotEntity nextbot) {
+                        nextbot.applyPreset(payload.fileName(), payload.speed(), payload.damage());
+                    }
+                } catch (Exception ignored) {}
             });
         });
     }

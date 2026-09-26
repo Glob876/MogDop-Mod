@@ -10,7 +10,9 @@ import com.mogdop.mod.client.gui.SelectionAxeHud;
 import com.mogdop.mod.client.gui.SelectionModeScreen;
 import com.mogdop.mod.client.gui.SpawnerScreen;
 import com.mogdop.mod.client.gui.ToolSelectorScreen;
+import com.mogdop.mod.client.gui.NextbotSettingsScreen;
 import com.mogdop.mod.client.render.ImageDisplayEntityRenderer;
+import com.mogdop.mod.client.render.NextbotEntityRenderer;
 import com.mogdop.mod.network.OpenMobSpawnerSlabScreenPayload;
 import com.mogdop.mod.network.SchematicPreviewPayload;
 import com.mogdop.mod.network.SyncSchematicsListPayload;
@@ -53,6 +55,12 @@ public class MogDopSModClient {
     public static KeyBinding openToolSelectorKey;
     public static KeyBinding openBlockSelectorKey;
     public static KeyBinding openSchematicKey;
+    public static KeyBinding openNextbotKey;
+
+    // Пресет NextBot по умолчанию (картинка из pics/, скорость, урон-ваншот)
+    public static String nextbotFileName = "";
+    public static float nextbotSpeed = 0.3F;
+    public static float nextbotDamage = 100.0F;
 
     public static final MogdopsModConfig CONFIG = initConfig();
 
@@ -447,12 +455,15 @@ public class MogDopSModClient {
         openToolSelectorKey = new KeyBinding("key.mogdops-mod.tool_selector", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_G, "category.mogdops-mod");
         openBlockSelectorKey = new KeyBinding("key.mogdops-mod.block_selector", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_J, "category.mogdops-mod");
         openSchematicKey = new KeyBinding("key.mogdops-mod.schematic", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_K, "category.mogdops-mod");
+        // Кнопка меню NextBot — неназначена (GLFW_KEY_UNKNOWN → в настройках «Не назначена»)
+        openNextbotKey = new KeyBinding("key.mogdops-mod.nextbot_settings", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, "category.mogdops-mod");
 
         KeyMappingRegistry.register(openSpawnerKey);
         KeyMappingRegistry.register(quickFillKey);
         KeyMappingRegistry.register(openToolSelectorKey);
         KeyMappingRegistry.register(openBlockSelectorKey);
         KeyMappingRegistry.register(openSchematicKey);
+        KeyMappingRegistry.register(openNextbotKey);
 
         // 2. Кроссплатформенный рендеринг HUD через Architectury Event
         ClientGuiEvent.RENDER_HUD.register((drawContext, tickCounter) -> {
@@ -462,6 +473,7 @@ public class MogDopSModClient {
 
         // 3. Регистрация рендереров сущностей
         EntityRendererRegistry.register(MogDopSMod.IMAGE_DISPLAY_ENTITY, ImageDisplayEntityRenderer::new);
+        EntityRendererRegistry.register(MogDopSMod.NEXTBOT, NextbotEntityRenderer::new);
 
         // 3.1 S2C-пакеты через Architectury — работает и на Fabric, и на NeoForge.
         // Раньше они были только на Fabric через Fabric API, поэтому на NeoForge
@@ -519,6 +531,10 @@ public class MogDopSModClient {
 
             while (openSchematicKey.wasPressed()) {
                 client.setScreen(new SchematicScreen());
+            }
+
+            while (openNextbotKey.wasPressed()) {
+                client.setScreen(new NextbotSettingsScreen());
             }
         });
     }
