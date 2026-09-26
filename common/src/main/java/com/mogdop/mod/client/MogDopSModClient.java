@@ -10,6 +10,7 @@ import com.mogdop.mod.client.gui.SelectionAxeHud;
 import com.mogdop.mod.client.gui.SelectionModeScreen;
 import com.mogdop.mod.client.gui.SpawnerScreen;
 import com.mogdop.mod.client.gui.ToolSelectorScreen;
+import com.mogdop.mod.client.audio.ClientAudioManager;
 import com.mogdop.mod.client.gui.NextbotSettingsScreen;
 import com.mogdop.mod.client.render.ImageDisplayEntityRenderer;
 import com.mogdop.mod.client.render.NextbotEntityRenderer;
@@ -57,10 +58,13 @@ public class MogDopSModClient {
     public static KeyBinding openSchematicKey;
     public static KeyBinding openNextbotKey;
 
-    // Пресет NextBot по умолчанию (картинка из pics/, скорость, урон-ваншот)
+    // Пресет NextBot по умолчанию (картинка из pics/, скорость, урон-ваншот, размер, аудио из audio/)
     public static String nextbotFileName = "";
     public static float nextbotSpeed = 0.3F;
     public static float nextbotDamage = 100.0F;
+    public static float nextbotSize = 1.0F;
+    public static String nextbotAudio = "";
+    public static boolean nextbotForceCrop = false;
 
     public static final MogdopsModConfig CONFIG = initConfig();
 
@@ -508,6 +512,7 @@ public class MogDopSModClient {
         // 4. Тики клиента
         ClientTickEvent.CLIENT_POST.register(client -> {
             notificationManager.update();
+            ClientAudioManager.tick(client);
 
             while (openSpawnerKey.wasPressed()) {
                 client.setScreen(new SpawnerScreen());
