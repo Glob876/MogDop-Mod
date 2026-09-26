@@ -98,8 +98,7 @@ public class QuickFillReplaceScreen extends BaseOwoScreen<FlowLayout> {
         }));
 
         actions.add(new QuickAction("mogdops-mod.quick_select.clear", "mogdops-mod.quick_select.clear.desc", Items.BARRIER, 0xFFFF3333, 90.0, () -> {
-            MogDopSModClient.pos1 = null;
-            MogDopSModClient.pos2 = null;
+            MogDopSModClient.clearCuboidSelection();
             MogDopSModClient.selectionPoints.clear();
             MinecraftClient client = MinecraftClient.getInstance();
             if (client != null && client.player != null) {

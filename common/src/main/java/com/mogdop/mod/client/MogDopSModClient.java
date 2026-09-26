@@ -128,6 +128,39 @@ public class MogDopSModClient {
     public static double animMaxX = 0, animMaxY = 0, animMaxZ = 0;
     public static boolean selectionAnimInitialized = false;
 
+    /** Анимация попиксельного выделения (toolMode 6): сглаженные углы квада. */
+    public static Vec3d animImageC0 = null;
+    public static Vec3d animImageC1 = null;
+    public static Vec3d animImageC2 = null;
+    public static Vec3d animImageC3 = null;
+    public static boolean imageAnimInit = false;
+
+    /** Сброс выделения кубоида (pos1/pos2) + флага анимации. */
+    public static void clearCuboidSelection() {
+        pos1 = null;
+        pos2 = null;
+        selectionAnimInitialized = false;
+        syncSelectionPoints();
+    }
+
+    /** Сброс анимации попиксельного выделения (новый ЛКМ). */
+    public static void resetImageSelectionAnim() {
+        imageAnimInit = false;
+        animImageC0 = null;
+        animImageC1 = null;
+        animImageC2 = null;
+        animImageC3 = null;
+    }
+
+    /** Lerp для углов попиксельного выделения к цели (скорость 0.25 как у кубоида). */
+    public static Vec3d lerpVec(Vec3d from, Vec3d to, double speed) {
+        if (from == null) return to;
+        return new Vec3d(
+                from.x + (to.x - from.x) * speed,
+                from.y + (to.y - from.y) * speed,
+                from.z + (to.z - from.z) * speed);
+    }
+
     public static final String[] TOOL_MODE_KEYS = {
             "mogdops-mod.tool_selector.modes.selection",
             "mogdops-mod.tool_selector.modes.remover",

@@ -148,8 +148,7 @@ public class ToolSelectorScreen extends BaseOwoScreen<FlowLayout> {
                 rightConfigPanel.child(Components.label(Text.translatable("mogdops-mod.tool_selector.pos2", p2Text)));
 
                 FlowLayout clearBtn = createFlatButton(140, 20, Text.translatable("mogdops-mod.tool_selector.reset_positions"), () -> {
-                    MogDopSModClient.pos1 = null;
-                    MogDopSModClient.pos2 = null;
+                    MogDopSModClient.clearCuboidSelection();
                     rebuildConfigPanel();
                 });
                 rightConfigPanel.child(clearBtn.margins(Insets.top(10)));
