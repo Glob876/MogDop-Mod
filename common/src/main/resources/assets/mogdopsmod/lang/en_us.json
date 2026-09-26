@@ -360,5 +360,15 @@
   "mogdops-mod.nextbot.err_nofile": "§c[NextBot] Pick a file via Browse first!",
   "mogdops-mod.nextbot.err_load": "§c[NextBot] Failed to load image!",
   "mogdops-mod.nextbot.err_notsquare": "§c[NextBot] Requires 1:1, got %sx%s! Enable cropping.",
-  "mogdops-mod.nextbot.err_crop": "§c[NextBot] Failed to crop to square!"
+  "mogdops-mod.nextbot.err_crop": "§c[NextBot] Failed to crop to square!",
+  "mogdops-mod.nextbot.size": "Size",
+  "mogdops-mod.nextbot.audio": "Audio: %s",
+  "mogdops-mod.nextbot.audio_none": "No sound",
+  "mogdops-mod.nextbot.browse_audio": "Audio...",
+  "mogdops-mod.nextbot.open_audio_folder": "Audio folder",
+  "mogdops-mod.nextbot.audio_title": "★ Pick Audio ★",
+  "mogdops-mod.nextbot.audio_folder_hint": "Drop .wav into config/audio/ (looped chase sound, distance volume)",
+  "mogdops-mod.nextbot.no_audio_files": "No .wav in audio/ — open the folder and drop files",
+  "mogdops-mod.nextbot.err_noaudio": "§c[NextBot] Missing audio %s in audio/!",
+  "mogdops-mod.nextbot.spawn_last": "Spawn last preset"
 }
