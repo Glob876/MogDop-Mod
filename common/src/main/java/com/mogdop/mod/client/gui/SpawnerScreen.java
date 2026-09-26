@@ -91,7 +91,8 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
         tabs.add(new MobSpawnerTab());   // 1: Мобы
         tabs.add(new ItemGiverTab());    // 2: Предметы
         tabs.add(new UtilitiesTab());    // 3: Утилиты
-        tabs.add(new SettingsTab());     // 4: Настройки
+        tabs.add(new NextbotsTab());     // 4: NextBots
+        tabs.add(new SettingsTab());     // 5: Настройки
     }
 
     // Компонент изображения с режимом заполнения Cover
@@ -359,14 +360,14 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
     private void rebuildTabUI() {
         if (tabsSidebarTop != null && tabs.size() > 0) {
             tabsSidebarTop.clearChildren();
-            for (int i = 0; i < 4 && i < tabs.size(); i++) {
+            for (int i = 0; i < 5 && i < tabs.size(); i++) {
                 tabsSidebarTop.child(createSidebarTabButton(tabs.get(i)));
             }
         }
 
-        if (bottomSettingsBox != null && tabs.size() > 4) {
+        if (bottomSettingsBox != null && tabs.size() > 5) {
             bottomSettingsBox.clearChildren();
-            bottomSettingsBox.child(createSidebarTabButton(tabs.get(4)));
+            bottomSettingsBox.child(createSidebarTabButton(tabs.get(5)));
         }
 
         tabContentWrapper.clearChildren();
@@ -842,7 +843,54 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
         }
     }
 
-    // ================= ВКЛАДКА 4: НАСТРОЙКИ (ВНИЗУ) =================
+    // ================= ВКЛАДКА 4: NEXTBOTS =================
+    private class NextbotsTab extends TabModule {
+        @Override
+        public Text getTitle() { return Text.translatable("mogdops-mod.tab.nextbots"); }
+
+        @Override
+        public void populateTab(FlowLayout container) {
+            container.gap(6);
+            container.child(smallLabel(Text.translatable("mogdops-mod.nextbot.tab_hint"), 0.78f, 0xFFCCCCCC));
+
+            String preset = MogDopSModClient.nextbotFileName == null || MogDopSModClient.nextbotFileName.isEmpty()
+                    ? Text.translatable("mogdops-mod.nextbot.no_preset").getString()
+                    : String.format(java.util.Locale.ROOT, "%s | %.2f | %.0f",
+                            MogDopSModClient.nextbotFileName, MogDopSModClient.nextbotSpeed, MogDopSModClient.nextbotDamage);
+            container.child(smallLabel(Text.translatable("mogdops-mod.nextbot.preset", preset), 0.74f, 0xFFFFAA00));
+
+            container.child(createFlatButton(220, 20, Text.translatable("mogdops-mod.nextbot.open_settings"), () -> {
+                MinecraftClient.getInstance().setScreen(new NextbotSettingsScreen());
+            }));
+
+            container.child(createFlatButton(220, 20, Text.translatable("mogdops-mod.nextbot.quick_spawn"), () -> {
+                String file = MogDopSModClient.nextbotFileName;
+                if (file == null || file.isEmpty()) {
+                    if (MinecraftClient.getInstance().player != null) {
+                        MinecraftClient.getInstance().player.sendMessage(Text.translatable("mogdops-mod.nextbot.err_nofile"), true);
+                    }
+                    MinecraftClient.getInstance().setScreen(new NextbotSettingsScreen());
+                    return;
+                }
+                var player = MinecraftClient.getInstance().player;
+                if (player == null) return;
+                var hit = player.raycast(64.0, 1.0F, false);
+                net.minecraft.util.math.Vec3d spawnPos;
+                if (hit.getType() == net.minecraft.util.hit.HitResult.Type.BLOCK) {
+                    var blockHit = (net.minecraft.util.hit.BlockHitResult) hit;
+                    var side = blockHit.getSide();
+                    spawnPos = hit.getPos().add(side.getOffsetX() * 0.5, 0.1, side.getOffsetZ() * 0.5);
+                } else {
+                    spawnPos = player.getEyePos().add(player.getRotationVec(1.0F).multiply(3.0));
+                }
+                NetworkManager.sendToServer(new SpawnNextbotPayload(file, spawnPos.x, spawnPos.y, spawnPos.z,
+                        MogDopSModClient.nextbotSpeed, MogDopSModClient.nextbotDamage));
+                SpawnerScreen.this.triggerSpawnEffect();
+            }));
+        }
+    }
+
+    // ================= ВКЛАДКА 5: НАСТРОЙКИ (ВНИЗУ) =================
     private class SettingsTab extends TabModule {
         private TextBoxComponent colorFieldRef;
         private ColorPickerComponent colorPickerRef;

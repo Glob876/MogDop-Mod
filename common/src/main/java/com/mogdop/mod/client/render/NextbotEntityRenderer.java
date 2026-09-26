@@ -15,8 +15,6 @@ import org.joml.Matrix4f;
 
 public class NextbotEntityRenderer extends EntityRenderer<NextbotEntity> {
 
-    private static final Identifier FALLBACK = Identifier.of("mogdopsmod", "textures/entity/nextbot_fallback.png");
-
     public NextbotEntityRenderer(EntityRendererFactory.Context ctx) {
         super(ctx);
         this.shadowRadius = 0.4F;
@@ -26,7 +24,7 @@ public class NextbotEntityRenderer extends EntityRenderer<NextbotEntity> {
     public Identifier getTexture(NextbotEntity entity) {
         ClientImageTextureManager.ImageTextureInfo info = ClientImageTextureManager.getTexture(entity.getTextureName());
         if (info != null) return info.id();
-        return FALLBACK;
+        return null;
     }
 
     @Override
@@ -36,7 +34,11 @@ public class NextbotEntityRenderer extends EntityRenderer<NextbotEntity> {
         if (imageName != null && !imageName.isEmpty()) {
             info = ClientImageTextureManager.getTexture(imageName);
         }
-        Identifier textureId = info != null ? info.id() : FALLBACK;
+        if (info == null) {
+            super.render(entity, yaw, tickDelta, matrices, vertexConsumers, light);
+            return;
+        }
+        Identifier textureId = info.id();
 
         BlockPos pos = BlockPos.ofFloored(entity.getPos());
         int renderLight = WorldRenderer.getLightmapCoordinates(entity.getWorld(), pos);
