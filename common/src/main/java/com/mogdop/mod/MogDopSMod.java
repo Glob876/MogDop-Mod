@@ -428,14 +428,14 @@ public class MogDopSMod {
             });
         });
 
-        // NextBots: спавн по пресету (картинка из pics/, скорость, урон)
+        // NextBots: спавн по пресету (картинка из pics/, скорость, урон, размер, аудио из audio/)
         NetworkManager.registerReceiver(NetworkManager.c2s(), SpawnNextbotPayload.ID, SpawnNextbotPayload.CODEC, (payload, context) -> {
             ServerPlayerEntity player = (ServerPlayerEntity) context.getPlayer();
             ServerWorld world = (ServerWorld) player.getWorld();
             world.getServer().execute(() -> {
                 NextbotEntity entity = NEXTBOT.get().create(world);
                 if (entity != null) {
-                    entity.applyPreset(payload.fileName(), payload.speed(), payload.damage());
+                    entity.applyPreset(payload.fileName(), payload.speed(), payload.damage(), payload.size(), payload.audioName());
                     entity.refreshPositionAndAngles(payload.x(), payload.y(), payload.z(), player.getYaw(), 0.0F);
                     entity.setPersistent();
                     world.spawnEntity(entity);
@@ -443,7 +443,7 @@ public class MogDopSMod {
             });
         });
 
-        // NextBots: применить пресет к существующему (текстура/скорость/урон)
+        // NextBots: применить пресет к существующему (текстура/скорость/урон/размер/аудио)
         NetworkManager.registerReceiver(NetworkManager.c2s(), UpdateNextbotPayload.ID, UpdateNextbotPayload.CODEC, (payload, context) -> {
             ServerPlayerEntity player = (ServerPlayerEntity) context.getPlayer();
             ServerWorld world = (ServerWorld) player.getWorld();
@@ -451,7 +451,7 @@ public class MogDopSMod {
                 try {
                     UUID uuid = UUID.fromString(payload.entityUuidStr());
                     if (world.getEntity(uuid) instanceof NextbotEntity nextbot) {
-                        nextbot.applyPreset(payload.fileName(), payload.speed(), payload.damage());
+                        nextbot.applyPreset(payload.fileName(), payload.speed(), payload.damage(), payload.size(), payload.audioName());
                     }
                 } catch (Exception ignored) {}
             });

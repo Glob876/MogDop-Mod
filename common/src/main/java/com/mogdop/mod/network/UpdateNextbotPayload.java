@@ -10,7 +10,9 @@ public record UpdateNextbotPayload(
         String entityUuidStr,
         String fileName,
         float speed,
-        float damage
+        float damage,
+        float size,
+        String audioName
 ) implements CustomPayload {
 
     public static final Id<UpdateNextbotPayload> ID = new Id<>(Identifier.of("mogdopsmod", "update_nextbot"));
@@ -22,6 +24,8 @@ public record UpdateNextbotPayload(
             PacketCodecs.STRING.encode(buf, value.fileName());
             PacketCodecs.FLOAT.encode(buf, value.speed());
             PacketCodecs.FLOAT.encode(buf, value.damage());
+            PacketCodecs.FLOAT.encode(buf, value.size());
+            PacketCodecs.STRING.encode(buf, value.audioName());
         }
 
         @Override
@@ -30,7 +34,9 @@ public record UpdateNextbotPayload(
                     PacketCodecs.STRING.decode(buf),
                     PacketCodecs.STRING.decode(buf),
                     PacketCodecs.FLOAT.decode(buf),
-                    PacketCodecs.FLOAT.decode(buf)
+                    PacketCodecs.FLOAT.decode(buf),
+                    PacketCodecs.FLOAT.decode(buf),
+                    PacketCodecs.STRING.decode(buf)
             );
         }
     };

@@ -27,9 +27,14 @@ public class NextbotEntity extends PathAwareEntity {
     private static final TrackedData<String> TEXTURE_NAME = DataTracker.registerData(NextbotEntity.class, TrackedDataHandlerRegistry.STRING);
     private static final TrackedData<Float> DAMAGE = DataTracker.registerData(NextbotEntity.class, TrackedDataHandlerRegistry.FLOAT);
     private static final TrackedData<Float> MOVE_SPEED = DataTracker.registerData(NextbotEntity.class, TrackedDataHandlerRegistry.FLOAT);
+    private static final TrackedData<Float> SIZE = DataTracker.registerData(NextbotEntity.class, TrackedDataHandlerRegistry.FLOAT);
+    private static final TrackedData<String> AUDIO_NAME = DataTracker.registerData(NextbotEntity.class, TrackedDataHandlerRegistry.STRING);
 
     public static final float DEFAULT_DAMAGE = 100.0F;
     public static final float DEFAULT_SPEED = 0.3F;
+    public static final float DEFAULT_SIZE = 1.0F;
+    public static final float MIN_SIZE = 0.25F;
+    public static final float MAX_SIZE = 3.0F;
 
     public NextbotEntity(EntityType<? extends PathAwareEntity> type, World world) {
         super(type, world);
@@ -42,7 +47,8 @@ public class NextbotEntity extends PathAwareEntity {
                 .add(EntityAttributes.GENERIC_MOVEMENT_SPEED, DEFAULT_SPEED)
                 .add(EntityAttributes.GENERIC_ATTACK_DAMAGE, DEFAULT_DAMAGE)
                 .add(EntityAttributes.GENERIC_FOLLOW_RANGE, 64.0)
-                .add(EntityAttributes.GENERIC_KNOCKBACK_RESISTANCE, 0.5);
+                .add(EntityAttributes.GENERIC_KNOCKBACK_RESISTANCE, 0.5)
+                .add(EntityAttributes.GENERIC_SCALE, DEFAULT_SIZE);
     }
 
     @Override
@@ -62,6 +68,8 @@ public class NextbotEntity extends PathAwareEntity {
         builder.add(TEXTURE_NAME, "");
         builder.add(DAMAGE, DEFAULT_DAMAGE);
         builder.add(MOVE_SPEED, DEFAULT_SPEED);
+        builder.add(SIZE, DEFAULT_SIZE);
+        builder.add(AUDIO_NAME, "");
     }
 
     public String getTextureName() {
@@ -98,10 +106,38 @@ public class NextbotEntity extends PathAwareEntity {
         }
     }
 
-    public void applyPreset(String textureName, float speed, float damage) {
+    public float getNextbotSize() {
+        Float v = this.dataTracker.get(SIZE);
+        return v == null ? DEFAULT_SIZE : v;
+    }
+
+    public void setNextbotSize(float size) {
+        float s = (float) Math.max(MIN_SIZE, Math.min(MAX_SIZE, size));
+        this.dataTracker.set(SIZE, s);
+        if (this.getAttributeInstance(EntityAttributes.GENERIC_SCALE) != null) {
+            this.getAttributeInstance(EntityAttributes.GENERIC_SCALE).setBaseValue(s);
+        }
+    }
+
+    public String getAudioName() {
+        return this.dataTracker.get(AUDIO_NAME);
+    }
+
+    public void setAudioName(String name) {
+        this.dataTracker.set(AUDIO_NAME, name == null ? "" : name);
+    }
+
+    public void applyPreset(String textureName, float speed, float damage, float size, String audioName) {
         setTextureName(textureName);
         setNextbotSpeed(speed);
         setNextbotDamage(damage);
+        setNextbotSize(size);
+        setAudioName(audioName);
+    }
+
+    /** Совместимость со старыми вызовами (без размера/аудио). */
+    public void applyPreset(String textureName, float speed, float damage) {
+        applyPreset(textureName, speed, damage, getNextbotSize(), getAudioName());
     }
 
     @Override
@@ -157,6 +193,12 @@ public class NextbotEntity extends PathAwareEntity {
         if (nbt.contains("NextbotSpeed")) {
             setNextbotSpeed(nbt.getFloat("NextbotSpeed"));
         }
+        if (nbt.contains("NextbotSize")) {
+            setNextbotSize(nbt.getFloat("NextbotSize"));
+        }
+        if (nbt.contains("NextbotAudio")) {
+            setAudioName(nbt.getString("NextbotAudio"));
+        }
     }
 
     @Override
@@ -165,5 +207,7 @@ public class NextbotEntity extends PathAwareEntity {
         nbt.putString("NextbotTexture", getTextureName());
         nbt.putFloat("NextbotDamage", getNextbotDamage());
         nbt.putFloat("NextbotSpeed", getNextbotSpeed());
+        nbt.putFloat("NextbotSize", getNextbotSize());
+        nbt.putString("NextbotAudio", getAudioName());
     }
 }

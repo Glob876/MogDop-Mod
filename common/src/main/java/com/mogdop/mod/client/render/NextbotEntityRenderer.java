@@ -44,13 +44,15 @@ public class NextbotEntityRenderer extends EntityRenderer<NextbotEntity> {
         int renderLight = WorldRenderer.getLightmapCoordinates(entity.getWorld(), pos);
         if (renderLight == 0) renderLight = light;
 
+        float size = Math.max(NextbotEntity.MIN_SIZE, Math.min(NextbotEntity.MAX_SIZE, entity.getNextbotSize()));
+
         matrices.push();
-        // Центр билборда на уровне глаз (~0.9 блока от ног)
-        matrices.translate(0.0, 0.9, 0.0);
+        // Центр билборда на уровне глаз (~0.9 блока от ног), масштабируется размером
+        matrices.translate(0.0, 0.9 * size, 0.0);
         matrices.multiply(this.dispatcher.getRotation());
 
-        float w = 1.2F;
-        float h = 1.2F;
+        float w = 1.2F * size;
+        float h = 1.2F * size;
         float hw = w / 2.0F;
         float hh = h / 2.0F;
 
