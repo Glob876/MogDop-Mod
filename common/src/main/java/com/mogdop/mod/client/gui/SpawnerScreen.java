@@ -1014,14 +1014,16 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
             FlowLayout controls = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
             controls.gap(5);
 
-            FlowLayout fileRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
-            fileRow.verticalAlignment(VerticalAlignment.CENTER);
-            fileRow.gap(6);
+            // Имя файла — отдельной строкой, кнопки — строкой ниже:
+            // так их не может выдавить за край ни при какой ширине окна.
             SmallLabelComponent fileLbl = smallLabel(
                     fileName == null || fileName.isEmpty() ? "—" : fileName, 0.72f, 0xFFFFAA00);
-            fileLbl.sizing(Sizing.fill(60), Sizing.content());
-            fileRow.child(fileLbl);
-            fileRow.child(createFlatButton(80, 18, Text.translatable("mogdops-mod.image.browse"), () -> {
+            fileLbl.sizing(Sizing.fill(100), Sizing.content());
+            controls.child(fileLbl);
+
+            FlowLayout fileBtnRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
+            fileBtnRow.gap(6);
+            fileBtnRow.child(createFlatButton(120, 18, Text.translatable("mogdops-mod.image.browse"), () -> {
                 stashDraft();
                 MinecraftClient.getInstance().setScreen(new ImageSelectorScreen(selected -> {
                     if (selected != null) MogDopSModClient.nextbotFileName = selected;
@@ -1029,7 +1031,7 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
                     MinecraftClient.getInstance().setScreen(new SpawnerScreen(null, 4));
                 }));
             }));
-            fileRow.child(createFlatButton(30, 18, smallLabel("📁", 0.75f, 0xFFFFFFFF), () -> {
+            fileBtnRow.child(createFlatButton(40, 18, smallLabel("📁", 0.75f, 0xFFFFFFFF), () -> {
                 var folder = com.mogdop.mod.client.NextbotHelper.getPicsFolder();
                 boolean ok = com.mogdop.mod.client.NextbotHelper.openFolder(folder);
                 status = ok
@@ -1037,26 +1039,26 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
                         : Text.translatable("mogdops-mod.nextbot.folder_failed", folder.getAbsolutePath()).getString();
                 rebuildTabUI();
             }));
-            controls.child(fileRow);
+            controls.child(fileBtnRow);
 
-            FlowLayout audioRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
-            audioRow.verticalAlignment(VerticalAlignment.CENTER);
-            audioRow.gap(6);
             SmallLabelComponent audioLbl = smallLabel(
                     Text.translatable("mogdops-mod.nextbot.audio",
                             audioName == null || audioName.isEmpty()
                                     ? Text.translatable("mogdops-mod.nextbot.audio_none").getString() : audioName),
                     0.72f, 0xFF55FFFF);
-            audioLbl.sizing(Sizing.fill(60), Sizing.content());
-            audioRow.child(audioLbl);
-            audioRow.child(createFlatButton(80, 18, Text.translatable("mogdops-mod.nextbot.browse_audio"), () -> {
+            audioLbl.sizing(Sizing.fill(100), Sizing.content());
+            controls.child(audioLbl);
+
+            FlowLayout audioBtnRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
+            audioBtnRow.gap(6);
+            audioBtnRow.child(createFlatButton(120, 18, Text.translatable("mogdops-mod.nextbot.browse_audio"), () -> {
                 stashDraft();
                 MinecraftClient.getInstance().setScreen(new AudioSelectorScreen(selected -> {
                     if (selected != null) MogDopSModClient.nextbotAudio = selected;
                     MinecraftClient.getInstance().setScreen(new SpawnerScreen(null, 4));
                 }));
             }));
-            audioRow.child(createFlatButton(30, 18, smallLabel("📁", 0.75f, 0xFFFFFFFF), () -> {
+            audioBtnRow.child(createFlatButton(40, 18, smallLabel("📁", 0.75f, 0xFFFFFFFF), () -> {
                 var folder = com.mogdop.mod.client.NextbotHelper.getAudioFolder();
                 boolean ok = com.mogdop.mod.client.NextbotHelper.openFolder(folder);
                 status = ok
@@ -1064,7 +1066,7 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
                         : Text.translatable("mogdops-mod.nextbot.folder_failed", folder.getAbsolutePath()).getString();
                 rebuildTabUI();
             }));
-            controls.child(audioRow);
+            controls.child(audioBtnRow);
 
             controls.child(stepperRow("mogdops-mod.nextbot.size",
                     String.format(java.util.Locale.ROOT, "%.2f", size),
