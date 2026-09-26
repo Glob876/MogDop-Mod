@@ -275,14 +275,17 @@ public class MogDopSModFabricClient implements ClientModInitializer {
                 }
             }
 
-            // 9.2 Режим кубоида WorldEdit
-            if (MogDopSModClient.currentToolMode == 0 && MogDopSModClient.currentSelectionMode == 0 && MogDopSModClient.pos1 != null && MogDopSModClient.pos2 != null) {
-                double minX = Math.min(MogDopSModClient.pos1.getX(), MogDopSModClient.pos2.getX());
-                double minY = Math.min(MogDopSModClient.pos1.getY(), MogDopSModClient.pos2.getY());
-                double minZ = Math.min(MogDopSModClient.pos1.getZ(), MogDopSModClient.pos2.getZ());
-                double maxX = Math.max(MogDopSModClient.pos1.getX(), MogDopSModClient.pos2.getX()) + 1.0;
-                double maxY = Math.max(MogDopSModClient.pos1.getY(), MogDopSModClient.pos2.getY()) + 1.0;
-                double maxZ = Math.max(MogDopSModClient.pos1.getZ(), MogDopSModClient.pos2.getZ()) + 1.0;
+            // 9.2 Режим кубоида WorldEdit (включая одну точку pos1 без pos2 -> бокс pos1..pos1+1)
+            if (MogDopSModClient.currentToolMode == 0 && MogDopSModClient.currentSelectionMode == 0 && MogDopSModClient.pos1 != null) {
+                BlockPos p1 = MogDopSModClient.pos1;
+                // Одна точка: второй угол совпадает с первым (бокс 1x1x1)
+                BlockPos p2 = MogDopSModClient.pos2 != null ? MogDopSModClient.pos2 : MogDopSModClient.pos1;
+                double minX = Math.min(p1.getX(), p2.getX());
+                double minY = Math.min(p1.getY(), p2.getY());
+                double minZ = Math.min(p1.getZ(), p2.getZ());
+                double maxX = Math.max(p1.getX(), p2.getX()) + 1.0;
+                double maxY = Math.max(p1.getY(), p2.getY()) + 1.0;
+                double maxZ = Math.max(p1.getZ(), p2.getZ()) + 1.0;
 
                 if (!MogDopSModClient.selectionAnimInitialized) {
                     MogDopSModClient.animMinX = minX; MogDopSModClient.animMinY = minY; MogDopSModClient.animMinZ = minZ;
