@@ -25,7 +25,7 @@
   - Вкладка `NextBots` в `SpawnerScreen` + кейбинд `key.mogdops-mod.nextbot_settings`, `GLFW_KEY_UNKNOWN` → в настройках «Не назначена».
 - Переиспользовать: `pics/` резолв, Explorer, `ClientImageTextureManager`.
 
-## 3. Чат
+## 3. Чат ✅ ВЫПОЛНЕНО
 ### 3.1 Дефолт — тёмная подложка без рамок
 - Убрать в `ChatNotificationHud.java:50-56` border + cyan-полосу. Одна общая подложка снизу-слева, сообщения поверх с паддингом 4–7 (дефолт 6).
 
