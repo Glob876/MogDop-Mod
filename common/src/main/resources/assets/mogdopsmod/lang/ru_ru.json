@@ -372,5 +372,15 @@
   "mogdops-mod.nextbot.err_noaudio": "§c[NextBot] Нет аудио %s в audio/!",
   "mogdops-mod.nextbot.spawn_last": "Заспавнить последний пресет",
   "mogdops-mod.nextbot.folder_opened": "§a[NextBot] Открыто: %s",
-  "mogdops-mod.nextbot.folder_failed": "§c[NextBot] Не открылось, путь вручную: %s"
+  "mogdops-mod.nextbot.folder_failed": "§c[NextBot] Не открылось, путь вручную: %s",
+  "mogdops-mod.chat.title": "★ Подложка чата",
+  "mogdops-mod.chat.hint": "Пиксели. Превью — снизу слева, меню диммится.",
+  "mogdops-mod.chat.bg_enabled": "Подложка включена",
+  "mogdops-mod.chat.width": "Ширина (px)",
+  "mogdops-mod.chat.height": "Высота (px)",
+  "mogdops-mod.chat.opacity": "Прозрачность",
+  "mogdops-mod.chat.padding": "Отступ",
+  "mogdops-mod.chat.accent": "Акцент (скролл)",
+  "mogdops-mod.chat.preview_line1": "MogDop: превью подложки чата",
+  "mogdops-mod.chat.preview_line2": "Тяните слайдеры — размер вживую"
 }

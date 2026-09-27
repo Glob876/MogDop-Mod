@@ -372,5 +372,15 @@
   "mogdops-mod.nextbot.err_noaudio": "§c[NextBot] Missing audio %s in audio/!",
   "mogdops-mod.nextbot.spawn_last": "Spawn last preset",
   "mogdops-mod.nextbot.folder_opened": "§a[NextBot] Opened: %s",
-  "mogdops-mod.nextbot.folder_failed": "§c[NextBot] Could not open, path: %s"
+  "mogdops-mod.nextbot.folder_failed": "§c[NextBot] Could not open, path: %s",
+  "mogdops-mod.chat.title": "★ Chat Background",
+  "mogdops-mod.chat.hint": "Pixels. Preview bottom-left, menu dims.",
+  "mogdops-mod.chat.bg_enabled": "Background enabled",
+  "mogdops-mod.chat.width": "Width (px)",
+  "mogdops-mod.chat.height": "Height (px)",
+  "mogdops-mod.chat.opacity": "Opacity",
+  "mogdops-mod.chat.padding": "Padding",
+  "mogdops-mod.chat.accent": "Accent (scrollbar)",
+  "mogdops-mod.chat.preview_line1": "MogDop: chat background preview",
+  "mogdops-mod.chat.preview_line2": "Drag sliders — live resize"
 }

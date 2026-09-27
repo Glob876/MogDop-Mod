@@ -5,6 +5,6 @@ import org.jetbrains.annotations.Nullable;
 
 public class MogDopConfigScreen extends SpawnerScreen {
     public MogDopConfigScreen(@Nullable Screen parent) {
-        super(parent, 4); // Открывает SpawnerScreen напрямую на вкладке Настройки (индекс 4)
+        super(parent, 5); // Открывает SpawnerScreen напрямую на вкладке Настройки (индекс 5)
     }
 }

@@ -42,6 +42,8 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
 
     public static float uiOpacity = 0.95F;
     public static boolean vanillaSkin = false;
+    /** Пока открыта вкладка настроек — меню диммится (~0.4) и рисуется live-превью подложки чата. */
+    public static boolean chatSettingsPreview = false;
 
     private static final Identifier LOGO_TEXTURE = Identifier.of("mogdops-mod", "icon.png");
 
@@ -343,6 +345,8 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
             if (elapsed < 1000) uiAlpha = 0.15f + 0.85f * (elapsed / 1000f);
             else lastSpawnTime = 0;
         }
+        // Пока тянется слайдер чата — меню ~0.4 прозрачности (PLAN 3.2)
+        if (chatSettingsPreview) uiAlpha = Math.min(uiAlpha, 0.4f);
 
         RenderSystem.enableBlend();
         context.setShaderColor(1f, 1f, 1f, uiAlpha);
@@ -352,6 +356,26 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
         context.drawBorder(0, 0, this.width, this.height, 0xFF00C8FF);
 
         super.render(context, mouseX, mouseY, delta);
+
+        // Live-превью подложки чата от левого нижнего края (PLAN 3.2)
+        if (chatSettingsPreview) {
+            int bgW = ChatNotificationHud.getBgW();
+            int previewH = Math.min(ChatNotificationHud.getBgHMax(), 64);
+            int pad = ChatNotificationHud.getPadding();
+            int px = 12;
+            int py = this.height - previewH - 25;
+            if (ChatNotificationHud.isBgEnabled()) {
+                int alpha = ChatNotificationHud.getBgOpacity();
+                context.fill(px, py, px + bgW, py + previewH, (alpha << 24) | 0x101015);
+            }
+            var tr = MinecraftClient.getInstance().textRenderer;
+            if (tr != null) {
+                context.drawTextWithShadow(tr, Text.translatable("mogdops-mod.chat.preview_line1"),
+                        px + pad, py + pad, 0xFFFFFFFF);
+                context.drawTextWithShadow(tr, Text.translatable("mogdops-mod.chat.preview_line2"),
+                        px + pad, py + pad + 12, 0xFFCCCCCC);
+            }
+        }
 
         context.setShaderColor(1f, 1f, 1f, 1f);
         RenderSystem.disableBlend();
@@ -371,6 +395,7 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
         }
 
         tabContentWrapper.clearChildren();
+        chatSettingsPreview = (currentTabModule instanceof SettingsTab);
         currentTabModule.populateTab(tabContentWrapper);
     }
 
@@ -1190,6 +1215,34 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
             return row;
         }
 
+        /** Степпер для int-настроек чата (ширина/высота/прозрачность/паддинг) с live-превью. */
+        private FlowLayout chatIntRow(String key, int current, int min, int max, int step,
+                                      java.util.function.IntConsumer setter) {
+            int[] holder = new int[]{current};
+            FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
+            row.verticalAlignment(VerticalAlignment.CENTER);
+            row.gap(6);
+            Component lbl = smallLabel(Text.translatable(key), 0.74f, 0xFFDDDDDD);
+            lbl.sizing(Sizing.fixed(160), Sizing.content());
+            row.child(lbl);
+            SmallLabelComponent val = smallLabel(String.valueOf(holder[0]), 0.75f, 0xFFFFFFFF);
+            val.sizing(Sizing.fixed(44), Sizing.content());
+            FlowLayout dec = createFlatButton(16, 16, smallLabel("-", 0.75f, 0xFFFFFFFF), () -> {
+                int next = Math.max(min, holder[0] - step);
+                holder[0] = next;
+                setter.accept(next);
+                val.text(Text.literal(String.valueOf(next)));
+            });
+            FlowLayout inc = createFlatButton(16, 16, smallLabel("+", 0.75f, 0xFFFFFFFF), () -> {
+                int next = Math.min(max, holder[0] + step);
+                holder[0] = next;
+                setter.accept(next);
+                val.text(Text.literal(String.valueOf(next)));
+            });
+            row.child(dec).child(val).child(inc);
+            return row;
+        }
+
         @Override
         public void populateTab(FlowLayout container) {
             FlowLayout contentCol = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
@@ -1327,6 +1380,37 @@ public class SpawnerScreen extends BaseOwoScreen<FlowLayout> {
             }
             paletteBox.child(paletteRow);
             contentCol.child(paletteBox);
+
+            // ---- Чат: подложка (PLAN 3.2) — слайдеры с live-превью, меню диммится в render() ----
+            contentCol.child(smallLabel(Text.translatable("mogdops-mod.chat.title"), 0.82f, 0xFF00C8FF).margins(Insets.top(6)));
+            contentCol.child(smallLabel(Text.translatable("mogdops-mod.chat.hint"), 0.70f, 0xFFAAAAAA));
+            contentCol.child(createToggleRow("mogdops-mod.chat.bg_enabled",
+                    MogDopSModClient.CONFIG.chat().bgEnabled, true, v -> MogDopSModClient.CONFIG.chat().bgEnabled = v));
+            contentCol.child(chatIntRow("mogdops-mod.chat.width",
+                    MogDopSModClient.CONFIG.chat().widthPx, 150, 600, 10, v -> MogDopSModClient.CONFIG.chat().widthPx = v));
+            contentCol.child(chatIntRow("mogdops-mod.chat.height",
+                    MogDopSModClient.CONFIG.chat().heightPx, 60, 400, 10, v -> MogDopSModClient.CONFIG.chat().heightPx = v));
+            contentCol.child(chatIntRow("mogdops-mod.chat.opacity",
+                    MogDopSModClient.CONFIG.chat().bgOpacity, 0, 255, 5, v -> MogDopSModClient.CONFIG.chat().bgOpacity = v));
+            contentCol.child(chatIntRow("mogdops-mod.chat.padding",
+                    MogDopSModClient.CONFIG.chat().padding, 4, 7, 1, v -> MogDopSModClient.CONFIG.chat().padding = v));
+
+            FlowLayout accentRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
+            accentRow.verticalAlignment(VerticalAlignment.CENTER);
+            accentRow.gap(6);
+            Component accentLabel = smallLabel(Text.translatable("mogdops-mod.chat.accent"), 0.74f, 0xFFDDDDDD);
+            accentLabel.sizing(Sizing.fixed(160), Sizing.content());
+            accentRow.child(accentLabel);
+            TextBoxComponent accentField = Components.textBox(Sizing.fixed(75));
+            accentField.setText(MogDopSModClient.CONFIG.chat().accentColor);
+            accentField.onChanged().subscribe(val -> MogDopSModClient.CONFIG.chat().accentColor = val);
+            accentRow.child(accentField);
+            FlowLayout resetAccentBtn = createFlatButton(16, 16, smallLabel("↺", 0.7f, 0xFFAAAAAA), () -> {
+                MogDopSModClient.CONFIG.chat().accentColor = "#00C8FF";
+                accentField.setText("#00C8FF");
+            });
+            accentRow.child(resetAccentBtn);
+            contentCol.child(accentRow);
 
             FlowLayout saveBtn = createFlatButton(140, 20, Text.translatable("text.config.mogdops-mod.save"), () -> {
                 MogDopSModClient.CONFIG.save();
