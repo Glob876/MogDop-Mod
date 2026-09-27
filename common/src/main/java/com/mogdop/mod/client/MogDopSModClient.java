@@ -72,42 +72,70 @@ public class MogDopSModClient {
             return MogdopsModConfig.createAndLoad();
         } catch (Throwable t) {
             MogDopSMod.LOGGER.warn("OWO config not available (NeoForge without owo-lib), using fallback defaults", t);
-            // Fallback via dynamic proxy — возвращает дефолты из MogdopsModConfigModel
+            // Fallback via dynamic proxy — возвращает дефолты из MogdopsModConfigModel.
+            // Рефлексивный: переживает добавление полей (в т.ч. вложенный Chat).
             MogdopsModConfigModel defaults = new MogdopsModConfigModel();
             return (MogdopsModConfig) java.lang.reflect.Proxy.newProxyInstance(
                     MogdopsModConfig.class.getClassLoader(),
                     new Class[]{MogdopsModConfig.class},
-                    (proxy, method, args) -> {
-                        String n = method.getName();
-                        // save()
-                        if (n.equals("save")) return null;
-                        // hasSeenWelcome
-                        if (n.equals("hasSeenWelcome") && (args == null || args.length == 0)) return defaults.hasSeenWelcome;
-                        if (n.equals("hasSeenWelcome") && args != null && args.length == 1) { defaults.hasSeenWelcome = (Boolean) args[0]; return null; }
-                        if (n.equals("hideChatHUD") && (args == null || args.length == 0)) return defaults.hideChatHUD;
-                        if (n.equals("enableCustomNotifications") && (args == null || args.length == 0)) return defaults.enableCustomNotifications;
-                        if (n.equals("vanillaSkin") && (args == null || args.length == 0)) return defaults.vanillaSkin;
-                        if (n.equals("toolExplosionFire") && (args == null || args.length == 0)) return defaults.toolExplosionFire;
-                        if (n.equals("enableSelectionAnimation") && (args == null || args.length == 0)) return defaults.enableSelectionAnimation;
-                        if (n.equals("enableSelectionParticles") && (args == null || args.length == 0)) return defaults.enableSelectionParticles;
-                        if (n.equals("toolSelectionColor") && (args == null || args.length == 0)) return defaults.toolSelectionColor;
-                        if (n.equals("toolSelectionColor") && args != null && args.length == 1) { defaults.toolSelectionColor = (String) args[0]; return null; }
-                        if (n.equals("toolRemoverRadius") && (args == null || args.length == 0)) return defaults.toolRemoverRadius;
-                        if (n.equals("toolRemoverRadius") && args != null && args.length == 1) { defaults.toolRemoverRadius = (Integer) args[0]; return null; }
-                        if (n.equals("toolExplosionPower") && (args == null || args.length == 0)) return defaults.toolExplosionPower;
-                        if (n.equals("toolExplosionPower") && args != null && args.length == 1) { defaults.toolExplosionPower = (Float) args[0]; return null; }
-                        // геттеры для boolean с is-prefix (если сгенерированы как isX)
-                        if (n.startsWith("is") && (args == null || args.length == 0)) {
-                            String field = Character.toLowerCase(n.charAt(2)) + n.substring(3);
-                            try { return MogdopsModConfigModel.class.getField(field).get(defaults); } catch (Exception ignored) {}
-                        }
-                        if (method.getReturnType() == boolean.class || method.getReturnType() == Boolean.class) return false;
-                        if (method.getReturnType() == int.class || method.getReturnType() == Integer.class) return 0;
-                        if (method.getReturnType() == float.class || method.getReturnType() == Float.class) return 0f;
-                        if (method.getReturnType() == String.class) return "";
-                        return null;
-                    });
+                    (proxy, method, args) -> proxyModelField(defaults, MogdopsModConfigModel.class, method, args));
         }
+    }
+
+    /** Рефлексивный геттер/сеттер для fallback-прокси (включая вложенные секции типа Chat). */
+    private static Object proxyModelField(Object modelObj, Class<?> modelClass, java.lang.reflect.Method method, Object[] args) throws Exception {
+        String n = method.getName();
+        if (n.equals("save")) return null;
+        if (n.equals("toString")) return "MogdopsModConfig(fallback)";
+        if (n.equals("hashCode")) return System.identityHashCode(modelObj);
+        if (n.equals("equals")) return false;
+        // Сеттер: chatBgEnabled(true) невозможен — OWO использует имя поля как метод. Сеттер = 1 аргумент.
+        if (args != null && args.length == 1) {
+            try {
+                java.lang.reflect.Field f = modelClass.getField(n);
+                f.set(modelObj, args[0]);
+                return null;
+            } catch (NoSuchFieldException ignored) {}
+        }
+        // Геттер без аргументов
+        if (args == null || args.length == 0) {
+            try {
+                java.lang.reflect.Field f = modelClass.getField(n);
+                Object val = f.get(modelObj);
+                if (val == null) return defaultFor(method.getReturnType());
+                // Вложенная секция (Chat): OWO возвращает саму модель (MogdopsModConfigModel.Chat),
+                // а не враппер — отдаём живой объект, мутации полей работают напрямую.
+                Class<?> ret = method.getReturnType();
+                if (!ret.isInterface() && !ret.isPrimitive() && ret != String.class
+                        && !(val instanceof Boolean) && !(val instanceof Number)) {
+                    return val;
+                }
+                if (ret.isInterface() && !ret.isPrimitive() && ret != String.class && !(val instanceof Boolean)
+                        && !(val instanceof Number) && !(val instanceof Boolean)) {
+                    Object nestedModel = val;
+                    Class<?> nestedModelClass = nestedModel.getClass();
+                    return java.lang.reflect.Proxy.newProxyInstance(
+                            ret.getClassLoader(),
+                            new Class[]{ret},
+                            (p2, m2, a2) -> proxyModelField(nestedModel, nestedModelClass, m2, a2));
+                }
+                return val;
+            } catch (NoSuchFieldException ignored) {}
+            // геттеры для boolean с is-prefix (если сгенерированы как isX)
+            if (n.startsWith("is")) {
+                String field = Character.toLowerCase(n.charAt(2)) + n.substring(3);
+                try { return modelClass.getField(field).get(modelObj); } catch (Exception ignored) {}
+            }
+        }
+        return defaultFor(method.getReturnType());
+    }
+
+    private static Object defaultFor(Class<?> type) {
+        if (type == boolean.class || type == Boolean.class) return false;
+        if (type == int.class || type == Integer.class) return 0;
+        if (type == float.class || type == Float.class) return 0f;
+        if (type == String.class) return "";
+        return null;
     }
 
     public static Block activeBlock = Blocks.STONE;

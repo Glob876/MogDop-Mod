@@ -19,4 +19,24 @@ public class MogdopsModConfigModel {
 
     @RangeConstraint(min = 1.0f, max = 50.0f)
     public float toolExplosionPower = 4.0F;
+
+    public static class Chat {
+        public boolean bgEnabled = true;
+
+        @RangeConstraint(min = 0, max = 255)
+        public int bgOpacity = 0xAA;
+
+        @RangeConstraint(min = 150, max = 600)
+        public int widthPx = 310;
+
+        @RangeConstraint(min = 60, max = 400)
+        public int heightPx = 180;
+
+        @RangeConstraint(min = 4, max = 7)
+        public int padding = 6;
+
+        public String accentColor = "#00C8FF";
+    }
+
+    public Chat chat = new Chat();
 }
