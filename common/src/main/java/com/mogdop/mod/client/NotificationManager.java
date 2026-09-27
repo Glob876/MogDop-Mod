@@ -15,15 +15,24 @@ public class NotificationManager {
         public float animX = -320f;
         public float opacity = 0f;
         public int cardHeight = 22;
+        private int lastWrapWidth = -1;
 
         public Notification(Text text, int maxWidth) {
             this.text = text;
             this.startTime = System.currentTimeMillis();
+            rewrap(maxWidth);
+        }
+
+        /** Переразбивка строк под текущую ширину подложки (wrapWidth = bgW - padding*2). */
+        public void rewrap(int maxWidth) {
+            if (maxWidth == lastWrapWidth && !lines.isEmpty()) return;
+            lastWrapWidth = maxWidth;
             MinecraftClient client = MinecraftClient.getInstance();
             if (client.textRenderer != null) {
-                this.lines = client.textRenderer.wrapLines(text, maxWidth);
+                this.lines = client.textRenderer.wrapLines(text, Math.max(50, maxWidth));
                 this.cardHeight = 12 + (this.lines.size() * 10);
             } else {
+                this.lines.clear();
                 this.lines.add(text.asOrderedText());
                 this.cardHeight = 22;
             }
@@ -47,10 +56,27 @@ public class NotificationManager {
     }
 
     public synchronized void addNotification(Text text) {
-        notifications.add(new Notification(text, 290));
+        notifications.add(new Notification(text, currentWrapWidth()));
         if (notifications.size() > 50) {
             notifications.remove(0);
         }
+    }
+
+    /** Текущая ширина переноса из конфига чата: widthPx - padding*2. */
+    public static int currentWrapWidth() {
+        try {
+            int w = MogDopSModClient.CONFIG.chat().widthPx;
+            int p = MogDopSModClient.CONFIG.chat().padding;
+            return Math.max(50, w - p * 2);
+        } catch (Throwable t) {
+            return 290;
+        }
+    }
+
+    /** Переразбить все уведомления под текущую ширину (вызывать каждый кадр перед layout). */
+    public synchronized void rewrapAll() {
+        int w = currentWrapWidth();
+        for (Notification n : notifications) n.rewrap(w);
     }
 
     public synchronized void clear() {
